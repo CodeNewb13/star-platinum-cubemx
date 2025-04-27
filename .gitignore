@@ -1,45 +1,27 @@
-# Keil uVision project files
-*.uvproj
-*.uvprojx
-*.uvopt
-*.uvoptx
-
-# CubeMX project files
+# STM32CubeMX
 *.ioc
 
-# Keil and CubeMX build files
+# Keil MDK-ARM project files
+*.uvprojx
+*.uvoptx
+*.uvgui
+
+# Build output
 /Debug/
 /Release/
 /obj/
 /bin/
 
-# Object and dependency files
+# Compiled objects & executables
 *.o
-*.a
-*.d
-*.out
+*.axf
 *.elf
 *.map
 
-# System-specific files
-System/ 
-
-# Middleware and driver directories (optional, depending on project structure)
-Middlewares/
-Drivers/
-
-# IDE specific files
-.vscode/
-.settings/
-ThumbDrive/
-
-# Log files
-*.log
-
-# Ignore generated files that can be recreated
-/*.dep
-*.stackdump
-
-# Ignore temporary and backup files
-*~
+# Backup & temp
 *.bak
+*.log
+*.d
+*.dep
+*.swp
+*~
