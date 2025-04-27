@@ -1,18 +1,18 @@
-# STM32CubeMX
-*.ioc
+# Ignore entire MDK-ARM project folder
+MDK-ARM/
 
-# Keil MDK-ARM project files
+# Keil MDK-ARM files
 *.uvprojx
 *.uvoptx
 *.uvgui
 
-# Build output
-/Debug/
-/Release/
-/obj/
-/bin/
+# Build outputs
+Debug/
+Release/
+obj/
+bin/
 
-# Compiled objects & executables
+# Object / executable files
 *.o
 *.axf
 *.elf
@@ -25,3 +25,4 @@
 *.dep
 *.swp
 *~
+EOF
