@@ -1,1 +1,45 @@
-starplat2.uvguix.*
+# Keil uVision project files
+*.uvproj
+*.uvprojx
+*.uvopt
+*.uvoptx
+
+# CubeMX project files
+*.ioc
+
+# Keil and CubeMX build files
+/Debug/
+/Release/
+/obj/
+/bin/
+
+# Object and dependency files
+*.o
+*.a
+*.d
+*.out
+*.elf
+*.map
+
+# System-specific files
+System/ 
+
+# Middleware and driver directories (optional, depending on project structure)
+Middlewares/
+Drivers/
+
+# IDE specific files
+.vscode/
+.settings/
+ThumbDrive/
+
+# Log files
+*.log
+
+# Ignore generated files that can be recreated
+/*.dep
+*.stackdump
+
+# Ignore temporary and backup files
+*~
+*.bak
