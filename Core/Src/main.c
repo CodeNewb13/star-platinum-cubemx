@@ -90,11 +90,13 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
-	CH452_Init();
-	CH452_Clear();
   MX_TIM1_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
+	
+	//Still trying to figure out how this works
+	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); //TIM3, Channel 1
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3); //TIM3, Channel 3
 	
   /* USER CODE END 2 */
 
@@ -105,9 +107,10 @@ int main(void)
     /* USER CODE END WHILE */
 		
     /* USER CODE BEGIN 3 */
-		for (uint8_t pos = 0; pos < 8; pos++) {
-        CH452_SetDigit(pos, 0x00);
-    }
+			//Figuring out how this works too
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
+		__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_3, 0);
+		
 		
   }
   /* USER CODE END 3 */
