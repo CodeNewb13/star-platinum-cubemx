@@ -1,13 +1,13 @@
 # Ignore entire MDK-ARM project folder
-MDK-ARM/
+# MDK-ARM/ # Riki malas update cubemx
 
 # cmake files
 .cache/
 build/
 
 # Keil MDK-ARM files
-*.uvprojx
-*.uvoptx
+# *.uvprojx
+# *.uvoptx
 *.uvgui
 
 # Build outputs
