@@ -30,7 +30,7 @@ void moveForward(int rpm) {
     Set_Motor2_RPM(rpm - pidcorrection);
     Set_Motor3_RPM(rpm + pidcorrection);
     Set_Motor4_RPM(rpm + pidcorrection);
-    HAL_Delay(1);
+    HAL_Delay(10);
     //}
   }
 }

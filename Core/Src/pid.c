@@ -2,7 +2,8 @@
 #include "bsp.h"
 
 // TODO: look up how this function can be implemented and utilized
-int balance_UP(float Angle, float Mechanical_balance, float Gyro) {}
+// int balance_UP(float Angle, float Mechanical_balance, float Gyro) {}
+int error = 0;
 uint8_t sensor[7];
 // The sensors we are using is from IO12-IO6
 void readGreyscale(void) {
@@ -35,7 +36,7 @@ int PID(void) {
   int Kp = 65;
   float Ki = 0.1;
   int Kd = 0; // (Kp-1) * 10
-  int error = 0;
+   error = 0;
   int correction = 0;
 
   readGreyscale();
