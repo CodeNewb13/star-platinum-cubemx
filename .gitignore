@@ -1,6 +1,10 @@
 # Ignore entire MDK-ARM project folder
 MDK-ARM/
 
+# cmake files
+.cache/
+build/
+
 # Keil MDK-ARM files
 *.uvprojx
 *.uvoptx
