@@ -9,7 +9,7 @@ void moveLeft(int rpm);
 void moveRight(int rpm);
 void rotateCW(int rpm);
 void rotateCCW(int rpm);
-void stopMotor();
+void stopMotor(void);
 void motorForward(int rpm);
 void motorBackward(int rpm);
 void motorLeft(int rpm);

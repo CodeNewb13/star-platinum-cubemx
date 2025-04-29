@@ -29,4 +29,8 @@ bin/
 *.dep
 *.swp
 *~
+
+# vscode
+*.vscode
+
 EOF

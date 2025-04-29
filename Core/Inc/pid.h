@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-int balance_UP(float Angle, float Mechanical_balance, float Gyro);
 void readGreyscale(void);
 void invertSensor(void);
 int PID(void);

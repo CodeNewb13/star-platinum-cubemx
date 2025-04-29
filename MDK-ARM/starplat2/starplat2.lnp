@@ -24,7 +24,7 @@
 "starplat2\stm32f1xx_hal_exti.o"
 "starplat2\stm32f1xx_hal_tim.o"
 "starplat2\stm32f1xx_hal_tim_ex.o"
-"starplat2\system_stm32f1xx.o"
+"starplat2\system_stm32f1xx_1.o"
 --strict --scatter "starplat2\starplat2.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers

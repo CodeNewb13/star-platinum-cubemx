@@ -2,7 +2,6 @@
 #include "bsp.h"
 
 // TODO: look up how this function can be implemented and utilized
-// int balance_UP(float Angle, float Mechanical_balance, float Gyro) {}
 int error = 0;
 uint8_t sensor[7];
 // The sensors we are using is from IO12-IO6
