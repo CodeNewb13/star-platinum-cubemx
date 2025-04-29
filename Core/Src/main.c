@@ -26,6 +26,7 @@
 /* USER CODE BEGIN Includes */
 #include "CH452_HAL.h"
 #include "motor.h"
+#include "movement.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -106,9 +107,13 @@ int main(void) {
     // for (uint8_t pos = 0; pos < 8; pos++) {
     //   CH452_SetDigit(pos, 0x00);
     // }
-    // Set_Motor1_RPM(100);
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 999 - 50);
-    __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 999);
+    moveForward(100);
+    // Set_Motor3_RPM(-50);
+    // Set_Motor4_RPM(0);
+    // Set_Motor1_RPM(0);
+    // Set_Motor2_RPM(0);
+    // __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 1000);
+    // __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 1000);
   }
   /* USER CODE END 3 */
 }

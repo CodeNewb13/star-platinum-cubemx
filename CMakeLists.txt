@@ -50,13 +50,13 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
     Core/Src/CH452_HAL.c
     Core/Src/motor.c
+    Core/Src/movement.c
+    Core/Src/pid.c
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
-    Core/Inc/CH452_HAL.h
-    Core/Src/motor.h
 )
 
 # Add project symbols (macros)
@@ -74,11 +74,16 @@ target_link_libraries(${CMAKE_PROJECT_NAME}
 add_custom_command(
     OUTPUT ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.bin
     COMMAND ${CMAKE_OBJCOPY} -O binary ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.elf ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.bin
-    # DEPENDS ${CMAKE_PROJECT_NAME}.elf
+    DEPENDS ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.elf
     COMMENT "Generating binary file"
 )
 
-add_custom_target(flash ALL
+add_custom_target(
+    post_build ALL
+    DEPENDS ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.bin
+)
+
+add_custom_target(flash
     DEPENDS ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.bin
     COMMAND st-flash --reset write ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.bin 0x08000000
     COMMENT "Flashing the binary to the target"
@@ -91,8 +96,8 @@ add_custom_target(openocd
 )
 
 add_custom_target(gdb
-    COMMAND arm-none-eabi-gdb ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.elf
-            -ex "target remote-extended :3333"
+    COMMAND kitty -- arm-none-eabi-gdb ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.elf
+            -ex "target extended-remote :3333"
             -ex "monitor reset halt"
             -ex "load"
             -ex "monitor reset init"
