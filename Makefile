@@ -23,7 +23,7 @@ openocd:
 
 # Target to run debug with gdb
 debug:
-	cmake --build $(BUILD_DIR) --target gdb
+	arm-none-eabi-gdb build/starplat2.elf --command=.gdbinit
 
 # Target to clean the build directory
 clean:

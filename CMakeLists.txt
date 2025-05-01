@@ -97,12 +97,8 @@ add_custom_target(openocd
 )
 
 add_custom_target(gdb
-    COMMAND kitty -- arm-none-eabi-gdb ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.elf
-            -ex "target extended-remote :3333"
-            -ex "monitor reset halt"
-            -ex "load"
-            -ex "monitor reset init"
-            -ex "continue"
+    COMMAND kitty -- arm-none-eabi-gdb
+    ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.elf --command=${CMAKE_SOURCE_DIR}/.gdbinit
     DEPENDS ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.elf
     COMMENT "Starting GDB and connecting to OpenOCD"
 )

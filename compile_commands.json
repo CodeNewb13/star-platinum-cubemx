@@ -66,6 +66,24 @@
   "output": "CMakeFiles/starplat2.dir/Core/Src/motor.c.obj"
 },
 {
+  "directory": "/home/nikolas/Programming/repos/star-platinum-cubemx/build",
+  "command": "/usr/bin/arm-none-eabi-gcc -DDEBUG -DSTM32F103x6 -DUSE_HAL_DRIVER -I/home/nikolas/Programming/repos/star-platinum-cubemx/Core/Inc -I/home/nikolas/Programming/repos/star-platinum-cubemx/Drivers/STM32F1xx_HAL_Driver/Inc -I/home/nikolas/Programming/repos/star-platinum-cubemx/Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I/home/nikolas/Programming/repos/star-platinum-cubemx/Drivers/CMSIS/Device/ST/STM32F1xx/Include -I/home/nikolas/Programming/repos/star-platinum-cubemx/Drivers/CMSIS/Include  -mcpu=cortex-m3  -Wall -Wextra -Wpedantic -fdata-sections -ffunction-sections -O0 -g3 -std=gnu11 -o CMakeFiles/starplat2.dir/Core/Src/movement.c.obj -c /home/nikolas/Programming/repos/star-platinum-cubemx/Core/Src/movement.c",
+  "file": "/home/nikolas/Programming/repos/star-platinum-cubemx/Core/Src/movement.c",
+  "output": "CMakeFiles/starplat2.dir/Core/Src/movement.c.obj"
+},
+{
+  "directory": "/home/nikolas/Programming/repos/star-platinum-cubemx/build",
+  "command": "/usr/bin/arm-none-eabi-gcc -DDEBUG -DSTM32F103x6 -DUSE_HAL_DRIVER -I/home/nikolas/Programming/repos/star-platinum-cubemx/Core/Inc -I/home/nikolas/Programming/repos/star-platinum-cubemx/Drivers/STM32F1xx_HAL_Driver/Inc -I/home/nikolas/Programming/repos/star-platinum-cubemx/Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I/home/nikolas/Programming/repos/star-platinum-cubemx/Drivers/CMSIS/Device/ST/STM32F1xx/Include -I/home/nikolas/Programming/repos/star-platinum-cubemx/Drivers/CMSIS/Include  -mcpu=cortex-m3  -Wall -Wextra -Wpedantic -fdata-sections -ffunction-sections -O0 -g3 -std=gnu11 -o CMakeFiles/starplat2.dir/Core/Src/pid.c.obj -c /home/nikolas/Programming/repos/star-platinum-cubemx/Core/Src/pid.c",
+  "file": "/home/nikolas/Programming/repos/star-platinum-cubemx/Core/Src/pid.c",
+  "output": "CMakeFiles/starplat2.dir/Core/Src/pid.c.obj"
+},
+{
+  "directory": "/home/nikolas/Programming/repos/star-platinum-cubemx/build",
+  "command": "/usr/bin/arm-none-eabi-gcc -DDEBUG -DSTM32F103x6 -DUSE_HAL_DRIVER -I/home/nikolas/Programming/repos/star-platinum-cubemx/Core/Inc -I/home/nikolas/Programming/repos/star-platinum-cubemx/Drivers/STM32F1xx_HAL_Driver/Inc -I/home/nikolas/Programming/repos/star-platinum-cubemx/Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I/home/nikolas/Programming/repos/star-platinum-cubemx/Drivers/CMSIS/Device/ST/STM32F1xx/Include -I/home/nikolas/Programming/repos/star-platinum-cubemx/Drivers/CMSIS/Include  -mcpu=cortex-m3  -Wall -Wextra -Wpedantic -fdata-sections -ffunction-sections -O0 -g3 -std=gnu11 -o CMakeFiles/starplat2.dir/Core/Src/mpu6050.c.obj -c /home/nikolas/Programming/repos/star-platinum-cubemx/Core/Src/mpu6050.c",
+  "file": "/home/nikolas/Programming/repos/star-platinum-cubemx/Core/Src/mpu6050.c",
+  "output": "CMakeFiles/starplat2.dir/Core/Src/mpu6050.c.obj"
+},
+{
   "directory": "/home/nikolas/Programming/repos/star-platinum-cubemx/build/cmake/stm32cubemx",
   "command": "/usr/bin/arm-none-eabi-gcc -DDEBUG -DSTM32F103x6 -DUSE_HAL_DRIVER -I/home/nikolas/Programming/repos/star-platinum-cubemx/Core/Inc -I/home/nikolas/Programming/repos/star-platinum-cubemx/Drivers/STM32F1xx_HAL_Driver/Inc -I/home/nikolas/Programming/repos/star-platinum-cubemx/Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I/home/nikolas/Programming/repos/star-platinum-cubemx/Drivers/CMSIS/Device/ST/STM32F1xx/Include -I/home/nikolas/Programming/repos/star-platinum-cubemx/Drivers/CMSIS/Include  -mcpu=cortex-m3  -Wall -Wextra -Wpedantic -fdata-sections -ffunction-sections -O0 -g3 -std=gnu11 -o CMakeFiles/STM32_Drivers.dir/__/__/Core/Src/system_stm32f1xx.c.obj -c /home/nikolas/Programming/repos/star-platinum-cubemx/Core/Src/system_stm32f1xx.c",
   "file": "/home/nikolas/Programming/repos/star-platinum-cubemx/Core/Src/system_stm32f1xx.c",
