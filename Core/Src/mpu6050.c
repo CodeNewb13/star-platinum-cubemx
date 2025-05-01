@@ -1,6 +1,7 @@
 #include "mpu6050.h"
 #include "bsp.h"
 #include "i2c.h"
+#include "math.h"
 #include "stm32f1xx_hal.h"
 #include "stm32f1xx_hal_i2c.h"
 
@@ -27,6 +28,7 @@ u8 MPU_Init(void) {
   MPU_Write_Byte(MPU_PWR_MGMT1_REG, 0X80); // Reset MPU6050
   HAL_Delay(100);
   MPU_Write_Byte(MPU_PWR_MGMT1_REG, 0X00); // Wake up MPU6050
+  MPU_Write_Byte(MPU_CFG_REG, 0x05);       // Low pass filter
   MPU_Set_Gyro_Fsr(3);                     // Gyroscope range, ±2000dps
   MPU_Set_Accel_Fsr(0);                    // Accelerometer range, ±2g
   MPU_Set_Rate(200);                       // Set sampling rate to 50Hz
@@ -129,6 +131,25 @@ u8 MPU_Get_Gyroscope(short *gx, short *gy, short *gz) {
   return res;
 }
 
+void calibrateGyro(float *rateCalibrateYaw) {
+  // Calculate the current reading for 2 seconds
+  for (int i = 0; i < 2000; i++) {
+    *rateCalibrateYaw += getRawYawRate();
+    HAL_Delay(1);
+  }
+  *rateCalibrateYaw /= 2000; // Take the average
+}
+
+float getRawYawRate(void) {
+  short gx, gy, gz = 0;
+  MPU_Get_Gyroscope(&gx, &gy, &gz);
+  return (float)(gz / 16.4f); // Based on FSR configuration (from data sheet)
+}
+
+float getCalibratedYawRate(float rateCalibrateYaw) {
+  return getRawYawRate() - rateCalibrateYaw;
+}
+
 // Get accelerometer values (raw values)
 // ax, ay, az: Accelerometer x, y, z-axis raw readings (signed)
 // Return value: 0, success
@@ -140,6 +161,19 @@ u8 MPU_Get_Accelerometer(short *ax, short *ay, short *az) {
     *ax = ((u16)buf[0] << 8) | buf[1];
     *ay = ((u16)buf[2] << 8) | buf[3];
     *az = ((u16)buf[4] << 8) | buf[5];
+  }
+  return res;
+}
+
+u8 getAccRate(float *accX, float *accY, float *accZ) {
+  u8 res;
+  short ax, ay, az;
+  res = MPU_Get_Accelerometer(&ax, &ay, &az);
+  if (res == 0) {
+    // Convert to g's (based on FSR and data sheet)
+    *accX = (float)ax / 16384 + 0.06;
+    *accY = (float)ay / 16384;
+    *accZ = (float)az / 16384 + 0.02;
   }
   return res;
 }

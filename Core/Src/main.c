@@ -24,9 +24,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "CH452_HAL.h"
 #include "motor.h"
 #include "movement.h"
+#include "mpu6050.h"
+#include "pid.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,7 +59,7 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+float accel_x = 0, accel_y = 0, accel_z = 0;
 /* USER CODE END 0 */
 
 /**
@@ -95,7 +96,19 @@ int main(void) {
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
   Motor_Init();
+  MPU_Init();
 
+  PID_Controller pid;
+  PID_Init(&pid, 10, 0, 0);
+
+  KalmanFilter kf;
+  Kalman_Init(&kf);
+  short gyro_x = 0, gyro_y = 0, gyro_z = 0;
+  float dt = 0.01f;
+  float alpha = 0.98f;
+  float rateCalibrationYaw = 0;
+
+  calibrateGyro(&rateCalibrationYaw);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -107,13 +120,19 @@ int main(void) {
     // for (uint8_t pos = 0; pos < 8; pos++) {
     //   CH452_SetDigit(pos, 0x00);
     // }
-    moveForward(100);
+    // moveForward(100);
     // Set_Motor3_RPM(-50);
     // Set_Motor4_RPM(0);
     // Set_Motor1_RPM(0);
     // Set_Motor2_RPM(0);
     // __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 1000);
     // __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 1000);
+    getAccRate(&accel_x, &accel_y, &accel_z);
+    MPU_Get_Gyroscope(&gyro_x, &gyro_y, &gyro_z);
+    // HAL_Delay(500);
+
+    Update_PID(accel_x, accel_y, gyro_z, dt, alpha, &pid, &kf);
+    HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }

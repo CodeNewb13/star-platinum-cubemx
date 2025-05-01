@@ -121,10 +121,10 @@ void rotateCCW(int rpm) {
 }
 
 // Motor directions
-void stopMotor() {
+void stopMotor(void) {
   Set_Motor1_RPM(0);
   Set_Motor2_RPM(0);
-  Set_Motor3_RPM(0);
+  Set_Motor3_RPM(10); // NOTE: must do this, or else it runs too fast at RPM 0
   Set_Motor4_RPM(0);
 }
 

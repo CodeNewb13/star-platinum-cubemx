@@ -1,5 +1,7 @@
 #include "pid.h"
 #include "bsp.h"
+#include "mpu6050.h"
+#include <math.h>
 
 // TODO: look up how this function can be implemented and utilized
 int error = 0;
@@ -35,7 +37,7 @@ int PID(void) {
   int Kp = 65;
   float Ki = 0.1;
   int Kd = 0; // (Kp-1) * 10
-   error = 0;
+  error = 0;
   int correction = 0;
 
   readGreyscale();
@@ -95,4 +97,101 @@ int LinePositionStatus(void) {
   } else {
     return 0; // No line detected
   }
+}
+
+// NOTE: AI Generated
+
+// Initialize PID controller
+void PID_Init(PID_Controller *pid, float kp, float ki, float kd) {
+  pid->kp = kp;
+  pid->ki = ki;
+  pid->kd = kd;
+  pid->prev_error = 0.0f;
+  pid->integral = 0.0f;
+}
+
+// Compute PID output
+float PID_Compute(PID_Controller *pid, float setpoint, float measured,
+                  float dt) {
+  float error = setpoint - measured;
+  pid->integral += error * dt;
+  float derivative = (error - pid->prev_error) / dt;
+  pid->prev_error = error;
+
+  return (pid->kp * error) + (pid->ki * pid->integral) + (pid->kd * derivative);
+}
+
+// Complementary filter for sensor fusion
+float Complementary_Filter(float accel_angle, float gz, float dt, float alpha) {
+
+  // Integrate gyroscope rate to estimate angle
+  static float fused_angle = 0.0f; // Initialize fused angle
+  fused_angle = alpha * (fused_angle + gz * dt) + (1.0f - alpha) * accel_angle;
+
+  return fused_angle;
+}
+
+float fused_angle;
+float pid_output;
+float filtered_angle;
+float gyro_angle;
+float accel_angle;
+// Example usage
+void Update_PID(float ax, float ay, float rateCalibrateYaw, float dt,
+                float alpha, PID_Controller *pid, KalmanFilter *kf) {
+  // Calculate accelerometer angle
+  accel_angle = atan2((int)100 * ay, (int)100 * ax) * (180.0f / M_PI);
+  // fused_angle = Complementary_Filter(accel_angle, gz, dt, alpha);
+  // filtered_angle = Kalman_Update(kf, accel_angle, gz, dt);
+  gyro_angle = getCalibratedYawRate(rateCalibrateYaw) * dt;
+  // pid_output =
+  //     PID_Compute(pid, 0.0f, filtered_angle, dt); // Target setpoint is 0.0
+  // Use pid_output to control motors or actuators
+}
+
+void Kalman_Init(KalmanFilter *kf) {
+  kf->angle = 0.0f;
+  kf->bias = 0.0f;
+  kf->rate = 0.0f;
+  kf->P[0][0] = 0.0f;
+  kf->P[0][1] = 0.0f;
+  kf->P[1][0] = 0.0f;
+  kf->P[1][1] = 0.0f;
+  kf->Q_angle = 0.001f;  // Tunable parameter
+  kf->Q_bias = 0.003f;   // Tunable parameter
+  kf->R_measure = 0.03f; // Tunable parameter
+}
+
+// Update Kalman filter
+float Kalman_Update(KalmanFilter *kf, float new_angle, float new_rate,
+                    float dt) {
+  // Predict step
+  kf->rate = new_rate - kf->bias;
+  kf->angle += dt * kf->rate;
+
+  kf->P[0][0] +=
+      dt * (dt * kf->P[1][1] - kf->P[0][1] - kf->P[1][0] + kf->Q_angle);
+  kf->P[0][1] -= dt * kf->P[1][1];
+  kf->P[1][0] -= dt * kf->P[1][1];
+  kf->P[1][1] += kf->Q_bias * dt;
+
+  // Measurement update
+  float S = kf->P[0][0] + kf->R_measure; // Estimate error
+  float K[2];                            // Kalman gain
+  K[0] = kf->P[0][0] / S;
+  K[1] = kf->P[1][0] / S;
+
+  float y = new_angle - kf->angle; // Angle difference
+  kf->angle += K[0] * y;
+  kf->bias += K[1] * y;
+
+  float P00_temp = kf->P[0][0];
+  float P01_temp = kf->P[0][1];
+
+  kf->P[0][0] -= K[0] * P00_temp;
+  kf->P[0][1] -= K[0] * P01_temp;
+  kf->P[1][0] -= K[1] * P00_temp;
+  kf->P[1][1] -= K[1] * P01_temp;
+
+  return kf->angle;
 }
