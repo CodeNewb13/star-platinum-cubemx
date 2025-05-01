@@ -136,6 +136,7 @@ float pid_output;
 float filtered_angle;
 float gyro_angle;
 float accel_angle;
+float curr_angle = 0;
 // Example usage
 void Update_PID(float ax, float ay, float rateCalibrateYaw, float dt,
                 float alpha, PID_Controller *pid, KalmanFilter *kf) {
@@ -144,6 +145,7 @@ void Update_PID(float ax, float ay, float rateCalibrateYaw, float dt,
   // fused_angle = Complementary_Filter(accel_angle, gz, dt, alpha);
   // filtered_angle = Kalman_Update(kf, accel_angle, gz, dt);
   gyro_angle = getCalibratedYawRate(rateCalibrateYaw) * dt;
+  curr_angle += gyro_angle;
   // pid_output =
   //     PID_Compute(pid, 0.0f, filtered_angle, dt); // Target setpoint is 0.0
   // Use pid_output to control motors or actuators
