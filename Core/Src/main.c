@@ -24,6 +24,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "mahony.h"
+#include "math.h"
 #include "motor.h"
 #include "movement.h"
 #include "mpu6050.h"
@@ -42,13 +44,23 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+#define gscale                                                                 \
+  ((500. / 32768.0) * (M_PI / 180.0)) // gyro default 500 LSB per d/s -> rad/s
+// Define alpha for the low-pass filter
+#define ALPHA 0.9
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+float q[4] = {1.0, 0.0, 0.0, 0.0};
+float A_cal[6] = {0.0,   0.0,   0.0,
+                  1.000, 1.000, 1.000}; // 0..2 offset xyz, 3..5 scale xyz
+float G_off[3];                         // Gyroscope offsets
+float yaw, pitch, roll;                 // Euler angle output
+float prev_yaw = 0;
 
+PID_Controller pid;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -59,7 +71,6 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-float accel_x = 0, accel_y = 0, accel_z = 0;
 /* USER CODE END 0 */
 
 /**
@@ -97,18 +108,25 @@ int main(void) {
   /* USER CODE BEGIN 2 */
   Motor_Init();
   MPU_Init();
-
-  PID_Controller pid;
-  PID_Init(&pid, 10, 0, 0);
+  PID_Init(&pid, 10.0, 0.0, 0.0);
 
   KalmanFilter kf;
   Kalman_Init(&kf);
-  short gyro_x = 0, gyro_y = 0, gyro_z = 0;
   float dt = 0.01f;
   float alpha = 0.98f;
-  float rateCalibrationYaw = 0;
+  // Raw data
+  short ax = 0, ay = 0, az = 0;
+  short gx = 0, gy = 0, gz = 0;
 
-  calibrateGyro(&rateCalibrationYaw);
+  // Scaled data as vectors
+  float Axyz[3];
+  float Gxyz[3];
+
+  float deltat = 0;               // loop time in seconds
+  unsigned int now = 0, last = 0; // HAL_GetTick() timers
+
+  calibrateGyro(G_off);
+  // calibrateAcc(A_cal);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -127,11 +145,85 @@ int main(void) {
     // Set_Motor2_RPM(0);
     // __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 1000);
     // __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 1000);
-    getAccRate(&accel_x, &accel_y, &accel_z);
-    MPU_Get_Gyroscope(&gyro_x, &gyro_y, &gyro_z);
+    float ax_avg, ay_avg, az_avg;
+    for (int i = 0; i < 25; i++) {
+      MPU_Get_Accelerometer(&ax, &ay, &az);
+      ax_avg += ax;
+      ay_avg += ay;
+      az_avg += az;
+    }
+    ax = ax_avg / 25;
+    ay = ay_avg / 25;
+    az = az_avg / 25;
+    MPU_Get_Gyroscope(&gx, &gy, &gz);
     // HAL_Delay(500);
+    // apply offsets and scale factors from Magneto
 
-    Update_PID(accel_x, accel_y, gyro_z, dt, alpha, &pid, &kf);
+    for (int i = 0; i < 3; i++)
+      Axyz[i] = (Axyz[i] - A_cal[i]) * A_cal[i + 3];
+
+    Gxyz[0] =
+        ((float)gx - G_off[0]) * gscale; // 250 LSB(d/s) default to radians/s
+    Gxyz[1] = ((float)gy - G_off[1]) * gscale;
+    Gxyz[2] = ((float)gz - G_off[2]) * gscale;
+
+    now = HAL_GetTick();
+    deltat = (now - last) * 1.0e-6; // seconds since last update
+    last = now;
+
+    Mahony_update(Axyz[0], Axyz[1], Axyz[2], Gxyz[0], Gxyz[1], Gxyz[2], deltat);
+    // Compute Tait-Bryan angles.
+    // In this coordinate system, the positive z-axis is down toward Earth.
+    // Yaw is the angle between Sensor x-axis and Earth magnetic North
+    // (or true North if corrected for local declination, looking down on the
+    // sensor positive yaw is counterclockwise, which is not conventional for
+    // NED navigation. Pitch is angle between sensor x-axis and Earth ground
+    // plane, toward the Earth is positive, up toward the sky is negative. Roll
+    // is angle between sensor y-axis and Earth ground plane, y-axis up is
+    // positive roll. These arise from the definition of the homogeneous
+    // rotation matrix constructed from quaternions. Tait-Bryan angles as well
+    // as Euler angles are non-commutative; that is, the get the correct
+    // orientation the rotations must be applied in the correct order which for
+    // this configuration is yaw, pitch, and then roll.
+    // http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+    // which has additional links.
+
+    roll =
+        atan2((q[0] * q[1] + q[2] * q[3]), 0.5 - (q[1] * q[1] + q[2] * q[2]));
+    pitch = asin(2.0 * (q[0] * q[2] - q[1] * q[3]));
+    // conventional yaw increases clockwise from North. Not that the MPU-6050
+    // knows where North is.
+    yaw =
+        -atan2((q[1] * q[2] + q[0] * q[3]), 0.5 - (q[2] * q[2] + q[3] * q[3]));
+    // to degrees
+    yaw *= 180.0 / M_PI;
+    // if (yaw < 0)
+    //   yaw += 360.0; // compass circle
+    // if (abs((int)(100 * (yaw - prev_yaw))) <=
+    //     10) // Cutoff if difference is less than 0.01
+    //   yaw = prev_yaw;
+    // prev_yaw = yaw;
+    // correct for local magnetic declination here
+    // Apply low-pass filter to yaw
+    float filtered_yaw = ALPHA * prev_yaw + (1 - ALPHA) * yaw;
+
+    // Update prev_yaw for the next iteration
+    prev_yaw = filtered_yaw;
+
+    // Use filtered_yaw for further calculations
+    yaw = filtered_yaw;
+    pitch *= 180.0 / M_PI;
+    roll *= 180.0 / M_PI;
+
+    // moveForward(100);
+    // moveLeft(100);
+    // moveRight(150);
+    // if (yaw < 90) { // we can leave rotations to sensors instead
+    //   motorCW(100);
+    // } else
+    //   stopMotor();
+
+    // Update_PID(ay, ax, gz, dt, alpha, &pid, &kf);
     HAL_Delay(10);
   }
   /* USER CODE END 3 */
