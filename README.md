@@ -75,7 +75,7 @@ You can always revisit the .ioc file to adjust pin configurations or peripheral 
 If you need additional configurations or peripherals, STM32CubeMX offers easy-to-use wizards for adding more components.
 
 ## TODO
-- [ ] Integrate algorithm into the codebase
+- [ ] Integrate pathfinding algorithm into the codebase
 - [ ] Implement TT_Motor for flame take
 - [ ] Integrate 3 orientation greyscale sensors for Mahony filter recalibration
   (maybe reinitialize quaternion each time it arrived at the checkpoint)
