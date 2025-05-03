@@ -28,7 +28,7 @@ u8 MPU_Init(void) {
   MPU_Write_Byte(MPU_PWR_MGMT1_REG, 0X80); // Reset MPU6050
   HAL_Delay(100);
   MPU_Write_Byte(MPU_PWR_MGMT1_REG, 0X00); // Wake up MPU6050
-  MPU_Write_Byte(MPU_CFG_REG, 0x05);       // Low pass filter
+  // MPU_Write_Byte(MPU_CFG_REG, 0x05);       // Low pass filter
   MPU_Set_Gyro_Fsr(3);                     // Gyroscope range, ±2000dps
   MPU_Set_Accel_Fsr(0);                    // Accelerometer range, ±2g
   MPU_Set_Rate(200);                       // Set sampling rate to 50Hz
@@ -131,13 +131,27 @@ u8 MPU_Get_Gyroscope(short *gx, short *gy, short *gz) {
   return res;
 }
 
-void calibrateGyro(float *rateCalibrateYaw) {
+void calibrateGyro(float *G_off) {
   // Calculate the current reading for 2 seconds
+  short gx, gy, gz = 0;
   for (int i = 0; i < 2000; i++) {
-    *rateCalibrateYaw += getRawYawRate();
-    HAL_Delay(1);
+    MPU_Get_Gyroscope(&gx, &gy, &gz);
+    G_off[0] += gx;
+    G_off[1] += gy;
+    G_off[2] += gz;
+    HAL_Delay(2);
   }
-  *rateCalibrateYaw /= 2000; // Take the average
+  for (int i = 0; i < 3; i++) {
+    G_off[i] /= 2000; // Take the avg
+  }
+}
+
+void getScaledRate(float *Gxyz) {
+  short gx, gy, gz = 0;
+  MPU_Get_Gyroscope(&gx, &gy, &gz);
+  Gxyz[0] = (float)gx / 2000;
+  Gxyz[1] = (float)gy / 2000;
+  Gxyz[2] = (float)gz / 2000;
 }
 
 float getRawYawRate(void) {
@@ -176,6 +190,21 @@ u8 getAccRate(float *accX, float *accY, float *accZ) {
     *accZ = (float)az / 16384 + 0.02;
   }
   return res;
+}
+
+void calibrateAcc(float *A_cal) {
+  // Calculate the current reading for 2 seconds
+  short ax, ay, az = 0;
+  for (int i = 0; i < 2000; i++) {
+    MPU_Get_Accelerometer(&ax, &ay, &az);
+    A_cal[0] += ax;
+    A_cal[1] += ay;
+    A_cal[2] += az;
+    HAL_Delay(2);
+  }
+  for (int i = 0; i < 3; i++) {
+    A_cal[i] /= 2000; // Take the avg
+  }
 }
 
 // I2C continuous write

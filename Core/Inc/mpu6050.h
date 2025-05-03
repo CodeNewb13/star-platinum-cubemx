@@ -121,10 +121,11 @@ u8 MPU_Set_Fifo(u8 sens);     // Set FIFO
 float MPU_Get_Temperature(void);                       // Get temperature value
 u8 MPU_Get_Gyroscope(short *gx, short *gy, short *gz); // Get gyroscope values
 void calibrateGyro(float *rateCalibrateYaw);
-float getRawYawRate(void);
+void getScaledRate(float *Gxyz);
 float getCalibratedYawRate(float rateCalibrateYaw);
 u8 MPU_Get_Accelerometer(short *ax, short *ay,
                          short *az); // Get accelerometer values
 u8 getAccRate(float *accX, float *accY, float *accZ);
+void calibrateAcc(float *A_cal);
 
 #endif
