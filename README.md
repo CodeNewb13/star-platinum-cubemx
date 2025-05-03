@@ -81,3 +81,6 @@ If you need additional configurations or peripherals, STM32CubeMX offers easy-to
   (maybe reinitialize quaternion each time it arrived at the checkpoint)
 - [ ] With the greyscale sensor, implement rotation (dont rely on mahony filter
 for rotation)
+- [ ] Move backwards
+- [ ] Algorithm to parse the movelist given by the pathfind algorithm (refer to
+simulation, for inspo)
