@@ -156,14 +156,14 @@ void motorRight(int rpm) {
   Set_Motor4_RPM(-rpm);
 }
 
-void motorCW(int rpm) {
+void motorCCW(int rpm) {
   Set_Motor1_RPM(-rpm);
   Set_Motor2_RPM(-rpm);
   Set_Motor3_RPM(rpm);
   Set_Motor4_RPM(rpm);
 }
 
-void motorCCW(int rpm) {
+void motorCW(int rpm) {
   Set_Motor1_RPM(rpm);
   Set_Motor2_RPM(rpm);
   Set_Motor3_RPM(-rpm);
