@@ -113,7 +113,8 @@ void PID_Init(PID_Controller *pid, float kp, float ki, float kd) {
 // Compute PID output
 float PID_Compute(PID_Controller *pid, float setpoint, float measured,
                   float dt) {
-  float error = setpoint - measured;
+  // Clockwise error: Positive, Counter CW: negative
+  float error = measured - setpoint;
   pid->integral += error * dt;
   float derivative = (error - pid->prev_error) / dt;
   pid->prev_error = error;
