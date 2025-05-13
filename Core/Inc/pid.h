@@ -27,8 +27,16 @@ typedef struct {
 } KalmanFilter;
 
 void readGreyscale(void);
+void readGreyscaleLeft(void);
+void readGreyscaleBack(void);
+void readGreyscaleRight(void);
+void invertSensorLeft(void);
+void invertSensorBack(void);
+void invertSensorRight(void);
 void invertSensor(void);
 int PID(void);
+int getOrientationError(void);
+int calibrationPID(void);
 bool FourLineCross(void);
 int LinePositionStatus(void);
 void PID_Init(PID_Controller *pid, float kp, float ki, float kd);

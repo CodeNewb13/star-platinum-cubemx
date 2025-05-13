@@ -5,25 +5,69 @@
 
 // TODO: look up how this function can be implemented and utilized
 int error = 0;
-uint8_t sensor[7];
-// The sensors we are using is from IO12-IO6
+uint8_t sensor_back[3];
+uint8_t sensor_left[4];
+uint8_t sensor_right[4];
+// NOTE: sensor left and right lights turned on convention is the opposite of
+// back sensor, it turns on if it cant receive the light back to the sensor
+// (there's a black color)
+// Reading of left and right are 1 if there's no black line, the opposite of
+// back sensor
+
 void readGreyscale(void) {
-  sensor[0] = Read_IO12; // left
-  sensor[1] = Read_IO11;
-  sensor[2] = Read_IO10;
-  sensor[3] = Read_IO9;
-  sensor[4] = Read_IO8;
-  sensor[5] = Read_IO7;
-  sensor[6] = Read_IO6; // right
-  invertSensor();
+  readGreyscaleLeft();
+  readGreyscaleBack();
+  readGreyscaleRight();
+  // invertSensor(); // Uncomment for black on white (competition scenario)
+}
+void readGreyscaleLeft(void) {
+  sensor_left[0] = Read_IO12; // CCW (left of center axis)
+  sensor_left[1] = Read_IO11;
+  sensor_left[2] = Read_IO10;
+  sensor_left[3] = Read_IO9; // CW (right of center axis)
+  invertSensorLeft();
+}
+
+void readGreyscaleBack(void) {
+  sensor_back[0] = Read_IO6; // CW
+  sensor_back[1] = Read_IO7;
+  sensor_back[2] = Read_IO8; // CCW
+  // invertSensorBack();
+}
+
+void readGreyscaleRight(void) {
+  sensor_right[0] = Read_IO2; // CW
+  sensor_right[1] = Read_IO3;
+  sensor_right[2] = Read_IO4;
+  sensor_right[3] = Read_IO5; // CCW
+  invertSensorRight();
 }
 
 // Invert for testing purpose on map in B1
 void invertSensor(void) {
-  for (int i = 0; i < 7; i++) {
-    sensor[i] = !sensor[i];
+  invertSensorLeft();
+  invertSensorBack();
+  invertSensorRight();
+}
+
+void invertSensorLeft(void) {
+  for (int i = 0; i < 4; i++) {
+    sensor_left[i] = !sensor_left[i];
   }
 }
+
+void invertSensorRight(void) {
+  for (int i = 0; i < 4; i++) {
+    sensor_right[i] = !sensor_right[i];
+  }
+}
+
+void invertSensorBack(void) {
+  for (int i = 0; i < 3; i++) {
+    sensor_back[i] = !sensor_back[i];
+  }
+}
+
 // TODO: check the algorithm
 // TODO: implement fuzzy PID ???
 int pos = 0;
@@ -63,6 +107,93 @@ int PID(void) {
   return correction = (int)(Kp * p + Ki * i + Kd * d);
 }
 
+int getOrientationError(void) {
+  int sum = 0;
+  int avg = 0;
+  int tempSum = 0;
+  int tempAvg = 0;
+  const int weight = 2;
+
+  int offset = 2;
+  // Read sensor left
+  for (int i = -2; i <= 2; i++) {
+    if (i == 0) {
+      offset = 1;
+      continue;
+    }
+    tempAvg += sensor_left[i + offset] * i * weight;
+    tempSum += sensor_left[i + offset];
+    if (tempSum >= 3 || tempAvg == 0) {
+      tempAvg = 0;
+      tempSum = 0;
+    }
+  }
+
+  // Read sensor right
+  sum += tempSum;
+  avg += tempAvg;
+  offset = 2;
+  for (int i = -2; i <= 2; i++) {
+    if (i == 0) {
+      offset = 1;
+      continue;
+    }
+    tempAvg += sensor_right[i + offset] * i * weight * (-1);
+    tempSum += sensor_right[i + offset];
+    if (tempSum >= 3 || tempAvg == 0) {
+      tempAvg = 0;
+      tempSum = 0;
+    }
+  }
+
+  // Read sensor back
+  sum += tempSum;
+  avg += tempAvg;
+  for (int i = -1; i <= 1; i++) {
+    tempAvg += sensor_back[i + 1] * i * weight * (-1);
+    tempSum += sensor_back[i + 1];
+    if (tempSum >= 3 || tempAvg == 0) {
+      tempAvg = 0;
+      tempSum = 0;
+    }
+  }
+  sum += tempSum;
+  avg += tempAvg;
+
+  if (sum > 0)
+    error = (int)avg / sum;
+  else
+    error = 0;
+  return error;
+}
+
+int calibrationPID(void) {
+  static int p = 0;
+  static int i = 0;
+  static int d = 0;
+  static int lp = 0;
+  int Kp = 65;
+  float Ki = 0;
+  int Kd = 0; // (Kp-1) * 10
+  error = 0;
+  int correction = 0;
+
+  readGreyscale();
+
+  error = getOrientationError();
+
+  p = error;
+  i += p;
+  d = p - lp;
+
+  lp = p;
+
+  // Limit integrate
+  if (i > 100)
+    i = 100;
+  return correction = (int)(Kp * p + Ki * i + Kd * d);
+}
+
 bool FourLineCross(void) {
   readGreyscale();
   for (int i = 0; i <= 6; i++) {
@@ -72,6 +203,8 @@ bool FourLineCross(void) {
   }
   return true;
 }
+
+bool isCentered(void) {}
 
 int LinePositionStatus(void) {
   readGreyscale();
