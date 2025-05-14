@@ -1,6 +1,7 @@
 const int enA = 9, in1 = 8, in2 = 7;
 
 void setup() {
+  
   pinMode(enA, OUTPUT);
   pinMode(in1, OUTPUT);
   pinMode(in2, OUTPUT);
@@ -21,19 +22,21 @@ void setup() {
 
 /*
   // 3) Reverse direction
-  Serial.println("Now IN1=LOW, IN2=HIGH: measure OUT1/2");
+
   digitalWrite(in1, LOW);
   digitalWrite(in2, HIGH);
   delay(3000);
+
   */
 
   /*
 
   // 4) Off
-  Serial.println("Turning OFF");
+
   digitalWrite(in1, LOW);
   digitalWrite(in2, LOW);
   analogWrite(enA, 0);
+
 */
 
 }
