@@ -29,13 +29,15 @@ void moveForward(int rpm) {
   // else{
   pidcorrection = PID_Compute(&pid, 0.0, yaw, 10);
   // pidcorrection = calculate_Motor_RPM(rpm, pidcorrection);
-  Set_Motor1_RPM(rpm - pidcorrection);
-  Set_Motor2_RPM(rpm - pidcorrection);
-  Set_Motor3_RPM(rpm + pidcorrection);
-  Set_Motor4_RPM(rpm + pidcorrection);
+  motorForward(rpm, pidcorrection);
   // HAL_Delay(10);
   //}
   // }
+}
+
+bool checkForwardEnd(void) {
+  return (sensor_left[1] || sensor_left[2]) &&
+         (sensor_right[1] || sensor_right[2]);
 }
 
 void moveBackward(int rpm) {
@@ -44,7 +46,7 @@ void moveBackward(int rpm) {
       stopMotor();
       return;
     } else {
-      motorBackward(rpm);
+      motorBackward(rpm, 0);
     }
   }
 }
@@ -104,6 +106,29 @@ void moveRight(int rpm) {
   Set_Motor4_RPM(-(rpm - pidcorrection));
 }
 
+void calibrateOrientation(void) {
+  int rpm;
+  while (!isCentered()) {
+    if (isBackCentered()) {
+      // Adjust forward/backward
+      while (!(isLeftCentered() && isRightCentered())) {
+        rpm = getForwardBackwardError() * 50;
+        motorForward(rpm, 0); // If its negative, it will go backwards
+      }
+    } else if (isLeftCentered() && isRightCentered()) {
+      // Adjust left/right
+      while (!isBackCentered()) {
+        rpm = getLeftRightError() * 50;
+        motorLeft(rpm, 0);
+      }
+    } else { // rotate
+      rpm = getOrientationError() * 50;
+      motorCW(rpm);
+    }
+  }
+  stopMotor(); // Stop when centered
+}
+
 void rotateCW(int rpm) {
   while (1) {
     int status = LinePositionStatus();
@@ -141,28 +166,28 @@ void stopMotor(void) {
   Set_Motor4_RPM(0);
 }
 
-void motorForward(int rpm) {
-  Set_Motor1_RPM(rpm);
-  Set_Motor2_RPM(rpm);
-  Set_Motor3_RPM(rpm);
-  Set_Motor4_RPM(rpm);
+void motorForward(int rpm, int offset) {
+  Set_Motor1_RPM(rpm - offset);
+  Set_Motor2_RPM(rpm - offset);
+  Set_Motor3_RPM(rpm + offset);
+  Set_Motor4_RPM(rpm + offset);
 }
 
-void motorBackward(int rpm) {
+void motorBackward(int rpm, int offset) {
   Set_Motor1_RPM(-rpm);
   Set_Motor2_RPM(-rpm);
   Set_Motor3_RPM(-rpm);
   Set_Motor4_RPM(-rpm);
 }
 
-void motorLeft(int rpm) {
+void motorLeft(int rpm, int offset) {
   Set_Motor1_RPM(-rpm);
   Set_Motor2_RPM(rpm);
   Set_Motor3_RPM(-rpm);
   Set_Motor4_RPM(rpm);
 }
 
-void motorRight(int rpm) {
+void motorRight(int rpm, int offset) {
   Set_Motor1_RPM(rpm);
   Set_Motor2_RPM(-rpm);
   Set_Motor3_RPM(rpm);

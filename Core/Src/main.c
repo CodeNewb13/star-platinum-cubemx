@@ -20,6 +20,7 @@
 #include "main.h"
 #include "gpio.h"
 #include "i2c.h"
+#include "stm32f1xx_hal.h"
 #include "tim.h"
 
 /* Private includes ----------------------------------------------------------*/
@@ -30,6 +31,8 @@
 #include "movement.h"
 #include "mpu6050.h"
 #include "pid.h"
+#include "types.h"
+#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -44,10 +47,6 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-#define gscale                                                                 \
-  ((500. / 32768.0) * (M_PI / 180.0)) // gyro default 500 LSB per d/s -> rad/s
-// Define alpha for the low-pass filter
-#define ALPHA 0.9
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -61,10 +60,12 @@ float G_off[3];                         // Gyroscope offsets
 float yaw, pitch, roll;                 // Euler angle output
 float prev_yaw = 0;
 
+int counter = 0;
 PID_Controller pid;
 // Scaled data as vectors
 float Axyz[3];
 float Gxyz[3];
+uint8_t moveCount = 0;
 // Raw data
 short ax = 0, ay = 0, az = 0;
 short gx = 0, gy = 0, gz = 0;
@@ -116,12 +117,6 @@ int main(void) {
   /* USER CODE BEGIN 2 */
   Motor_Init();
   MPU_Init();
-  PID_Init(&pid, 10.0, 0.0, 0.0);
-
-  KalmanFilter kf;
-  Kalman_Init(&kf);
-  float dt = 0.01f;
-  float alpha = 0.98f;
   // // Raw data
   // short ax = 0, ay = 0, az = 0;
   // short gx = 0, gy = 0, gz = 0;
@@ -130,13 +125,32 @@ int main(void) {
   // float Axyz[3];
   // float Gxyz[3];
 
-  float deltat = 0;               // loop time in seconds
-  unsigned int now = 0, last = 0; // HAL_GetTick() timers
-
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_SET);
+  // blue yellow,
+  // grey red
+  // red orange
+  // For arduino connection PA0, PA1, PA2
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, 0);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, 0);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, 1);
+  // HAL_Delay(2000);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, 0);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, 0);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, 0);
+  // HAL_Delay(2000);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, 0);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, 1);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, 0);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_SET); // Test tt motor
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_RESET);
   calibrateGyro(G_off);
   // calibrateAcc(A_cal);
+
+  // BotInstruction instructions[50] = {movr,  movf,  movl, movb,  rotl,
+  //                                    rotr,  rotb,  take, puth0, puth1,
+  //                                    puth2, puth3, stop};
+  BotInstruction instructions[50] = {movf, stop};
+  uint8_t index = 0;
+  bool calibrateFlag = false;
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -145,97 +159,57 @@ int main(void) {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    // for (uint8_t pos = 0; pos < 8; pos++) {
-    //   CH452_SetDigit(pos, 0x00);
-    // }
-    // moveForward(100);
-    // Set_Motor3_RPM(-50);
-    // Set_Motor4_RPM(0);
-    // Set_Motor1_RPM(0);
-    // Set_Motor2_RPM(0);
-    // __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 1000);
-    // __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 1000);
-    float ax_avg, ay_avg, az_avg;
-    for (int i = 0; i < 25; i++) {
-      MPU_Get_Accelerometer(&ax, &ay, &az);
-      ax_avg += ax;
-      ay_avg += ay;
-      az_avg += az;
-    }
-    ax = ax_avg / 25;
-    ay = ay_avg / 25;
-    az = az_avg / 25;
-    MPU_Get_Gyroscope(&gx, &gy, &gz);
-    // HAL_Delay(500);
-    // apply offsets and scale factors from Magneto
-
-    for (int i = 0; i < 3; i++)
-      Axyz[i] = (Axyz[i] - A_cal[i]) * A_cal[i + 3];
-
-    Gxyz[0] =
-        ((float)gx - G_off[0]) * gscale; // 250 LSB(d/s) default to radians/s
-    Gxyz[1] = ((float)gy - G_off[1]) * gscale;
-    Gxyz[2] = ((float)gz - G_off[2]) * gscale;
-
-    now = HAL_GetTick();
-    deltat = (now - last) * 1.0e-6; // seconds since last update
-    last = now;
-
-    // Mahony_update(Axyz[0], Axyz[1], Axyz[2], Gxyz[0], Gxyz[1], Gxyz[2],
-    // deltat);
-    Mahony_update(Axyz[0], Axyz[1], Axyz[2], gx, gy, gz, deltat);
-    // Compute Tait-Bryan angles.
-    // In this coordinate system, the positive z-axis is down toward Earth.
-    // Yaw is the angle between Sensor x-axis and Earth magnetic North
-    // (or true North if corrected for local declination, looking down on the
-    // sensor positive yaw is counterclockwise, which is not conventional for
-    // NED navigation. Pitch is angle between sensor x-axis and Earth ground
-    // plane, toward the Earth is positive, up toward the sky is negative. Roll
-    // is angle between sensor y-axis and Earth ground plane, y-axis up is
-    // positive roll. These arise from the definition of the homogeneous
-    // rotation matrix constructed from quaternions. Tait-Bryan angles as well
-    // as Euler angles are non-commutative; that is, the get the correct
-    // orientation the rotations must be applied in the correct order which for
-    // this configuration is yaw, pitch, and then roll.
-    // http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
-    // which has additional links.
-
-    roll =
-        atan2((q[0] * q[1] + q[2] * q[3]), 0.5 - (q[1] * q[1] + q[2] * q[2]));
-    pitch = asin(2.0 * (q[0] * q[2] - q[1] * q[3]));
-    // conventional yaw increases clockwise from North. Not that the MPU-6050
-    // knows where North is.
-    yaw =
-        -atan2((q[1] * q[2] + q[0] * q[3]), 0.5 - (q[2] * q[2] + q[3] * q[3]));
-    // to degrees
-    yaw *= 180.0 / M_PI;
-    // if (yaw < 0)
-    //   yaw += 360.0; // compass circle
-    // if (abs((int)(100 * (yaw - prev_yaw))) <=
-    //     10) // Cutoff if difference is less than 0.01
-    //   yaw = prev_yaw;
-    // prev_yaw = yaw;
-    // correct for local magnetic declination here
-    // Apply low-pass filter to yaw
-    float filtered_yaw = ALPHA * prev_yaw + (1 - ALPHA) * yaw;
-
-    // Update prev_yaw for the next iteration
-    prev_yaw = filtered_yaw;
-
-    // Use filtered_yaw for further calculations
-    yaw = filtered_yaw;
-    pitch *= 180.0 / M_PI;
-    roll *= 180.0 / M_PI;
-
-    // moveLeft(100);
-    // moveRight(150);
-    // if (yaw < 90) { // we can leave rotations to sensors instead
-    //   motorCW(100);
-    // } else
-    //   stopMotor();
-
     testPID = calibrationPID();
+    updateYawPitchRoll();
+    switch (instructions[index]) {
+    case movr:
+      break;
+    case movf:
+      moveForward(100);
+      if (moveCount++ >= 30) {
+        if (checkForwardEnd()) {
+          calibrateFlag = true;
+          moveCount = 0;
+          index++;
+        }
+      }
+      break;
+    case movl:
+      break;
+    case movb:
+      break;
 
+    case rotl:
+      break;
+    case rotr:
+      break;
+    case rotb:
+      break;
+
+    case take:
+      break;
+
+    case puth0:
+      break;
+    case puth1:
+      break;
+    case puth2:
+      break;
+    case puth3:
+      break;
+
+    case stop:
+      stopMotor();
+      break;
+    }
+
+    if (calibrateFlag) {
+      calibrateOrientation();
+      resetQuaternions();
+      calibrateFlag = false;
+    }
+
+    counter++; // Delay without interrupting other processes
     // Update_PID(ay, ax, gz, dt, alpha, &pid, &kf);
     HAL_Delay(10);
   }

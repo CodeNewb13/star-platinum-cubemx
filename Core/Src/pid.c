@@ -2,9 +2,11 @@
 #include "bsp.h"
 #include "mpu6050.h"
 #include <math.h>
+#include <stdint.h>
 
 // TODO: look up how this function can be implemented and utilized
 int error = 0;
+uint8_t sensor[7];
 uint8_t sensor_back[3];
 uint8_t sensor_left[4];
 uint8_t sensor_right[4];
@@ -20,6 +22,14 @@ void readGreyscale(void) {
   readGreyscaleRight();
   // invertSensor(); // Uncomment for black on white (competition scenario)
 }
+/* Sensor mounting illustration
+ * 3 |       | 3
+ * 2 |       | 2
+ * 1 |       | 1
+ * 0 |       | 0
+ *   =========
+ *     0 1 2
+ */
 void readGreyscaleLeft(void) {
   sensor_left[0] = Read_IO12; // CCW (left of center axis)
   sensor_left[1] = Read_IO11;
@@ -105,6 +115,66 @@ int PID(void) {
   if (i > 100)
     i = 100;
   return correction = (int)(Kp * p + Ki * i + Kd * d);
+}
+
+int getForwardBackwardError(void) {
+  int sum = 0;
+  int count = 0;
+  int tempCount = 0;
+  int tempSum = 0;
+  const int weight = 2;
+  const uint8_t weightArr[4] = {-3, -1, 1, 3};
+
+  // Left sensor
+  for (int i = 0; i < 4; i++) {
+    tempSum += sensor_left[i] * weightArr[i] * weight;
+    tempCount += sensor_left[i];
+    if (tempCount >= 3 && tempSum == 0) {
+      tempSum = 0;
+      tempCount = 0;
+    }
+  }
+  sum += tempSum;
+  count += tempCount;
+
+  // Right sensor
+  for (int i = 0; i < 4; i++) {
+    tempSum += sensor_right[i] * weightArr[i] * weight;
+    tempCount += sensor_right[i];
+    if (tempCount >= 3 && tempSum == 0) {
+      tempSum = 0;
+      tempCount = 0;
+    }
+  }
+  sum += tempSum;
+  count += tempCount;
+
+  if (count > 0)
+    error = (int)sum / count; // Get the average
+  else
+    error = 0;
+  return error;
+}
+
+int getLeftRightError(void) {
+  int sum = 0;
+  int count = 0;
+  const int weight = 2;
+  const uint8_t weightArr[3] = {1, 0, -1};
+
+  for (int i = 0; i < 3; i++) {
+    sum += sensor_back[i] * weightArr[i] * weight;
+    count += sensor_back[i];
+    if (count >= 3 && sum == 0) {
+      sum = 0;
+      count = 0;
+    }
+  }
+  if (count > 0)
+    error = (int)sum / count; // Get the average
+  else
+    error = 0;
+  return error;
 }
 
 int getOrientationError(void) {
@@ -204,7 +274,23 @@ bool FourLineCross(void) {
   return true;
 }
 
-bool isCentered(void) {}
+bool isLeftCentered(void) {
+  return sensor_left[0] == 0 && sensor_left[1] == 1 && sensor_left[2] == 0 &&
+         sensor_left[3] == 0;
+}
+
+bool isBackCentered(void) {
+  return sensor_back[0] == 0 && sensor_back[1] == 1 && sensor_back[2] == 0;
+}
+
+bool isRightCentered(void) {
+  return sensor_right[0] == 0 && sensor_right[1] == 1 && sensor_right[2] == 0 &&
+         sensor_right[3] == 0;
+}
+
+bool isCentered(void) {
+  return isLeftCentered() && isBackCentered() && isRightCentered();
+}
 
 int LinePositionStatus(void) {
   readGreyscale();

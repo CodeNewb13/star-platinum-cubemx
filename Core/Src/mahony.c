@@ -11,6 +11,7 @@
 //--------------------------------------------------------------------------------------------------
 // IMU algorithm update
 #include "math.h"
+#include "mpu6050.h"
 
 const float Kp = 30;
 const float Ki = 0.0;
@@ -84,4 +85,98 @@ void Mahony_update(float ax, float ay, float az, float gx, float gy, float gz,
   q[1] = q[1] * recipNorm;
   q[2] = q[2] * recipNorm;
   q[3] = q[3] * recipNorm;
+}
+
+// Global variables from main.c
+extern short ax, ay, az;
+extern short gx, gy, gz;
+extern float Axyz[3], Gxyz[3];
+extern float A_cal[6], G_off[3];
+extern float yaw, pitch, roll; // Euler angle output
+extern float prev_yaw;
+#define gscale                                                                 \
+  ((500. / 32768.0) * (M_PI / 180.0)) // gyro default 500 LSB per d/s -> rad/s
+// Define alpha for the low-pass filter
+#define ALPHA 0.9
+
+void updateYawPitchRoll(void) {
+  float deltat = 0;                      // loop time in seconds
+  static unsigned int now = 0, last = 0; // HAL_GetTick() timers
+
+  float ax_avg, ay_avg, az_avg;
+  for (int i = 0; i < 25; i++) {
+    MPU_Get_Accelerometer(&ax, &ay, &az);
+    ax_avg += ax;
+    ay_avg += ay;
+    az_avg += az;
+  }
+  ax = ax_avg / 25;
+  ay = ay_avg / 25;
+  az = az_avg / 25;
+  MPU_Get_Gyroscope(&gx, &gy, &gz);
+  // HAL_Delay(500);
+  // apply offsets and scale factors from Magneto
+
+  for (int i = 0; i < 3; i++)
+    Axyz[i] = (Axyz[i] - A_cal[i]) * A_cal[i + 3];
+
+  Gxyz[0] =
+      ((float)gx - G_off[0]) * gscale; // 250 LSB(d/s) default to radians/s
+  Gxyz[1] = ((float)gy - G_off[1]) * gscale;
+  Gxyz[2] = ((float)gz - G_off[2]) * gscale;
+
+  now = HAL_GetTick();
+  deltat = (now - last) * 1.0e-6; // seconds since last update
+  last = now;
+
+  // Mahony_update(Axyz[0], Axyz[1], Axyz[2], Gxyz[0], Gxyz[1], Gxyz[2],
+  // deltat);
+  Mahony_update(Axyz[0], Axyz[1], Axyz[2], gx, gy, gz, deltat);
+  // Compute Tait-Bryan angles.
+  // In this coordinate system, the positive z-axis is down toward Earth.
+  // Yaw is the angle between Sensor x-axis and Earth magnetic North
+  // (or true North if corrected for local declination, looking down on the
+  // sensor positive yaw is counterclockwise, which is not conventional for
+  // NED navigation. Pitch is angle between sensor x-axis and Earth ground
+  // plane, toward the Earth is positive, up toward the sky is negative. Roll
+  // is angle between sensor y-axis and Earth ground plane, y-axis up is
+  // positive roll. These arise from the definition of the homogeneous
+  // rotation matrix constructed from quaternions. Tait-Bryan angles as well
+  // as Euler angles are non-commutative; that is, the get the correct
+  // orientation the rotations must be applied in the correct order which for
+  // this configuration is yaw, pitch, and then roll.
+  // http://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+  // which has additional links.
+
+  roll = atan2((q[0] * q[1] + q[2] * q[3]), 0.5 - (q[1] * q[1] + q[2] * q[2]));
+  pitch = asin(2.0 * (q[0] * q[2] - q[1] * q[3]));
+  // conventional yaw increases clockwise from North. Not that the MPU-6050
+  // knows where North is.
+  yaw = -atan2((q[1] * q[2] + q[0] * q[3]), 0.5 - (q[2] * q[2] + q[3] * q[3]));
+  // to degrees
+  yaw *= 180.0 / M_PI;
+  // if (yaw < 0)
+  //   yaw += 360.0; // compass circle
+  // if (abs((int)(100 * (yaw - prev_yaw))) <=
+  //     10) // Cutoff if difference is less than 0.01
+  //   yaw = prev_yaw;
+  // prev_yaw = yaw;
+  // correct for local magnetic declination here
+  // Apply low-pass filter to yaw
+  float filtered_yaw = ALPHA * prev_yaw + (1 - ALPHA) * yaw;
+
+  // Update prev_yaw for the next iteration
+  prev_yaw = filtered_yaw;
+
+  // Use filtered_yaw for further calculations
+  yaw = filtered_yaw;
+  pitch *= 180.0 / M_PI;
+  roll *= 180.0 / M_PI;
+}
+
+void resetQuaternions(void) {
+  q[0] = 1.0;
+  q[1] = 0;
+  q[2] = 0;
+  q[3] = 0;
 }
