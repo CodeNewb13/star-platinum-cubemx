@@ -53,6 +53,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+int testPID = 0;
 float q[4] = {1.0, 0.0, 0.0, 0.0};
 float A_cal[6] = {0.0,   0.0,   0.0,
                   1.000, 1.000, 1.000}; // 0..2 offset xyz, 3..5 scale xyz
@@ -61,6 +62,12 @@ float yaw, pitch, roll;                 // Euler angle output
 float prev_yaw = 0;
 
 PID_Controller pid;
+// Scaled data as vectors
+float Axyz[3];
+float Gxyz[3];
+// Raw data
+short ax = 0, ay = 0, az = 0;
+short gx = 0, gy = 0, gz = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -105,6 +112,7 @@ int main(void) {
   MX_I2C1_Init();
   MX_TIM1_Init();
   MX_TIM3_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   Motor_Init();
   MPU_Init();
@@ -114,17 +122,19 @@ int main(void) {
   Kalman_Init(&kf);
   float dt = 0.01f;
   float alpha = 0.98f;
-  // Raw data
-  short ax = 0, ay = 0, az = 0;
-  short gx = 0, gy = 0, gz = 0;
+  // // Raw data
+  // short ax = 0, ay = 0, az = 0;
+  // short gx = 0, gy = 0, gz = 0;
 
-  // Scaled data as vectors
-  float Axyz[3];
-  float Gxyz[3];
+  // // Scaled data as vectors
+  // float Axyz[3];
+  // float Gxyz[3];
 
   float deltat = 0;               // loop time in seconds
   unsigned int now = 0, last = 0; // HAL_GetTick() timers
 
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_RESET);
   calibrateGyro(G_off);
   // calibrateAcc(A_cal);
   /* USER CODE END 2 */
@@ -171,7 +181,9 @@ int main(void) {
     deltat = (now - last) * 1.0e-6; // seconds since last update
     last = now;
 
-    Mahony_update(Axyz[0], Axyz[1], Axyz[2], Gxyz[0], Gxyz[1], Gxyz[2], deltat);
+    // Mahony_update(Axyz[0], Axyz[1], Axyz[2], Gxyz[0], Gxyz[1], Gxyz[2],
+    // deltat);
+    Mahony_update(Axyz[0], Axyz[1], Axyz[2], gx, gy, gz, deltat);
     // Compute Tait-Bryan angles.
     // In this coordinate system, the positive z-axis is down toward Earth.
     // Yaw is the angle between Sensor x-axis and Earth magnetic North
@@ -215,13 +227,14 @@ int main(void) {
     pitch *= 180.0 / M_PI;
     roll *= 180.0 / M_PI;
 
-    // moveForward(100);
     // moveLeft(100);
     // moveRight(150);
     // if (yaw < 90) { // we can leave rotations to sensors instead
     //   motorCW(100);
     // } else
     //   stopMotor();
+
+    testPID = calibrationPID();
 
     // Update_PID(ay, ax, gz, dt, alpha, &pid, &kf);
     HAL_Delay(10);

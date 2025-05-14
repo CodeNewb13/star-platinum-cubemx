@@ -23,6 +23,22 @@ void Motor_Init(void) {
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
 }
 
+void TT_Motor_Init(void) {
+  // For motor 1
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_2);
+  // For motor 2
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_4);
+  // For motor 3
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+  Set_Motor3_RPM(10); // It moves itself somehow
+  // For motor 4
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
+}
+
 void Set_Motor1_RPM(int RPM) {
   RPM = -RPM;
   if (RPM > 400)
