@@ -54,6 +54,7 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src/pid.c
     Core/Src/mpu6050.c
     Core/Src/mahony.c
+    Core/Src/utils.c
 )
 
 # Add include paths
