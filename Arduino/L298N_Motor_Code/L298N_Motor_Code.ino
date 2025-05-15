@@ -1,4 +1,5 @@
-const int enA = 3, in1 = 1, in2 = 2, enB = 9, in3 = 7, in4 = 8; 
+const int enA = 3, enB = 11, enC = 9; 
+const int in1 = 1, in2 = 2, int3 = 12, int4 = 13, in5 = 7, in6 = 8; 
 const int in1pin = A0, in2pin = A1, in3pin = A2; //input data
 
 void setup() {
@@ -6,9 +7,9 @@ void setup() {
   pinMode(enA, OUTPUT);
   pinMode(in1, OUTPUT);
   pinMode(in2, OUTPUT);
-  pinMode(enB, OUTPUT);
-  pinMode(in3, OUTPUT);
-  pinMode(in4, OUTPUT);
+  pinMode(enC, OUTPUT);
+  pinMode(in5, OUTPUT);
+  pinMode(in6, OUTPUT);
   pinMode(in1pin, INPUT); //input signal from stm32 to arduino
   pinMode(in2pin, INPUT);
   pinMode(in3pin, INPUT);
@@ -18,9 +19,9 @@ void setup() {
   digitalWrite(in1, LOW);
   digitalWrite(in2, LOW);
   analogWrite(enA, 0);
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, LOW);
-  analogWrite(enB, 0);
+  digitalWrite(in5, LOW);
+  digitalWrite(in6, LOW);
+  analogWrite(enC, 0);
 }
 
 void forward(int IN1, int IN2, int en) {
@@ -57,21 +58,21 @@ int ReadInput(){
 
 void ConveyorForward(){
   forward(in1, in2, enA);
-  forward(in3, in4, enB);
+  forward(in5, in6, enC);
 }
 
 void ConveyorReverse(){
   reverse(in1, in2, enA);
-  reverse(in3, in4, enB);
+  reverse(in5, in6, enC);
 }
 
 void ConveyorStop(){
   digitalWrite(in1, HIGH);
   digitalWrite(in2, HIGH);
   analogWrite(enA, 0);
-  digitalWrite(in3, HIGH);
-  digitalWrite(in4, HIGH);
-  analogWrite(enB, 0);
+  digitalWrite(in5, HIGH);
+  digitalWrite(in6, HIGH);
+  analogWrite(enC, 0);
 }
 
 void Up(){
@@ -100,6 +101,7 @@ Input 1 2 3
 
 */
 void loop() {
+<<<<<<< HEAD
   int signal = ReadInput();
   switch(signal) {
     case 0b000: // 000
