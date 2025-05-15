@@ -55,17 +55,17 @@ int ReadInput(){
   return inputCombination;
 }
 
-void ConveyerForward(){
+void ConveyorForward(){
   forward(in1, in2, enA);
   forward(in3, in4, enB);
 }
 
-void ConveyerReverse(){
+void ConveyorReverse(){
   reverse(in1, in2, enA);
   reverse(in3, in4, enB);
 }
 
-void ConveyerStop(){
+void ConveyorStop(){
   digitalWrite(in1, HIGH);
   digitalWrite(in2, HIGH);
   analogWrite(enA, 0);
@@ -88,57 +88,52 @@ void RestVertical(){
 /*
 Input 1 2 3
       0 0 0 -> Nothing moving
-      1 0 0 -> Conveyer forward
-      0 1 0 -> Conveyer reverse
-      0 0 1 -> 
-      1 1 0 -> Up
-      1 0 1 -> Down
+      0 0 1 -> Conveyor forward
+      0 1 0 -> Conveyor reverse
       0 1 1 -> 
+      1 0 0 -> Rest vertical 
+      1 0 1 -> Down
+      1 1 0 -> Up
       1 1 1 ->
 
 
 
 */
 void loop() {
-  digitalWrite(in3, HIGH);
-  digitalWrite(in4, LOW);
-  analogWrite(enB, 255);
-  digitalWrite(in1, HIGH);
-  digitalWrite(in2, LOW);
-  analogWrite(enA, 255);
-  //int signal = ReadInput();
-  /*int signal = 001;
+  int signal = ReadInput();
   switch(signal) {
     case 0b000: // 000
-    ConveyerStop();
+    ConveyorStop();
     RestVertical();
       break;
     case 0b001: // 001
-    ConveyerForward();
+    ConveyorForward();
     RestVertical();
       break;
     case 0b010: // 010
-    ConveyerReverse();
+    ConveyorReverse();
     RestVertical();
       break;
     case 0b011: // 011
-    ConveyerStop();
+    
+    ConveyorStop();
       break;
     case 0b100: // 100
-    Up();
-    ConveyerStop();
+    RestVertical();
+    ConveyorStop();
       break;
     case 0b101: // 101
     Down();
-    ConveyerStop();
+    ConveyorStop();
       break;
     case 0b110: // 110
-    RestVertical();
+    Up();
+    ConveyorStop();
       break;
     case 0b111: // 111
 
       break;
     default:
       break;
-  }*/
+  }
  }
