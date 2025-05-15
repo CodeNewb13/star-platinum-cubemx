@@ -165,10 +165,10 @@ int main(void) {
     case movr:
       break;
     case movf:
-      moveForward(100);
+      // moveForward(100);
       if (moveCount++ >= 30) {
         if (checkForwardEnd()) {
-          calibrateFlag = true;
+          // calibrateFlag = true;
           moveCount = 0;
           index++;
         }
