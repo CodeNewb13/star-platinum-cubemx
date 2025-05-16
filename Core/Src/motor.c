@@ -77,7 +77,7 @@ void Set_Motor2_RPM(int RPM) {
 }
 
 void Set_Motor3_RPM(int RPM) {
-  if (RPM == 0)
+  if (RPM == 0) // Clam the motor rpm as it will craze when set to 0
     RPM = 10;
   if (RPM > 400)
     RPM = 400;

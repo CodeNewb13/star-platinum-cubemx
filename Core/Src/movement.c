@@ -36,19 +36,21 @@ void moveForward(int rpm) {
 }
 
 bool checkForwardEnd(void) {
-  return (sensor_left[1] || sensor_left[2]) &&
-         (sensor_right[1] || sensor_right[2]);
+  return (sensor_left[1] || sensor_left[2] || sensor_left[3]) &&
+         (sensor_right[1] || sensor_right[2] || sensor_right[3]);
 }
 
 void moveBackward(int rpm) {
-  while (1) {
-    if (FourLineCross()) {
-      stopMotor();
-      return;
-    } else {
-      motorBackward(rpm, 0);
-    }
-  }
+  // while (1) {
+  //   if (FourLineCross()) {
+  //     stopMotor();
+  //     return;
+  //   } else {
+  //     motorBackward(rpm, 0);
+  //   }
+  // }
+  pidcorrection = PID();
+  motorBackward(100, pidcorrection);
 }
 
 void moveLeft(int rpm) {
@@ -108,25 +110,50 @@ void moveRight(int rpm) {
 
 void calibrateOrientation(void) {
   int rpm;
-  while (!isCentered()) {
-    if (isBackCentered()) {
-      // Adjust forward/backward
-      while (!(isLeftCentered() && isRightCentered())) {
-        rpm = getForwardBackwardError() * 50;
-        motorForward(rpm, 0); // If its negative, it will go backwards
-      }
-    } else if (isLeftCentered() && isRightCentered()) {
-      // Adjust left/right
-      while (!isBackCentered()) {
-        rpm = getLeftRightError() * 50;
-        motorLeft(rpm, 0);
-      }
-    } else { // rotate
-      rpm = getOrientationError() * 50;
-      motorCW(rpm);
+  int mult;
+  if (isLeftEmpty() && isRightEmpty()) {
+    // Overshoot, move backward
+    while (!(isLeftCentered() && isRightCentered())) {
+      readGreyscale();
+      HAL_Delay(10);
+      moveBackward(100);
     }
+  } else if (isLeftCentered() && isRightCentered()) {
+    // Adjust left/right
+    while (!isBackCentered()) {
+      readGreyscale();
+      if (getLeftRightError() > 0)
+        mult = 1;
+      else if (getLeftRightError() < 0)
+        mult = -1;
+      else
+        mult = 0;
+      rpm = mult * 100;
+      motorLeft(rpm, 0);
+      HAL_Delay(10);
+    }
+  } else if (isBackCentered() || isLeftRightSame()) {
+    // Adjust forward/backward
+    while (!(isLeftCentered() && isRightCentered())) {
+      readGreyscale();
+      if (getForwardBackwardError() > 0)
+        mult = 1;
+      else if (getForwardBackwardError() < 0)
+        mult = -1;
+      rpm = mult * 100;
+      motorForward(rpm, 0); // If its negative, it will go backwards
+      HAL_Delay(10);
+    }
+  } else { // rotate
+    if (getOrientationError() > 0)
+      mult = 1;
+    else if (getOrientationError() < 0)
+      mult = -1;
+    else
+      mult = 0;
+    rpm = mult * 100;
+    motorCW(rpm);
   }
-  stopMotor(); // Stop when centered
 }
 
 void rotateCW(int rpm) {
@@ -174,10 +201,10 @@ void motorForward(int rpm, int offset) {
 }
 
 void motorBackward(int rpm, int offset) {
-  Set_Motor1_RPM(-rpm);
-  Set_Motor2_RPM(-rpm);
-  Set_Motor3_RPM(-rpm);
-  Set_Motor4_RPM(-rpm);
+  Set_Motor1_RPM(-(rpm - offset));
+  Set_Motor2_RPM(-(rpm - offset));
+  Set_Motor3_RPM(-(rpm + offset));
+  Set_Motor4_RPM(-(rpm + offset));
 }
 
 void motorLeft(int rpm, int offset) {

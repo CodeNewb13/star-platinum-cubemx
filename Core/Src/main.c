@@ -137,9 +137,15 @@ int main(void) {
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, 0);
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, 0);
   // HAL_Delay(2000);
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, 0);
+  // up
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, 1);
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, 1);
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, 0);
+
+  // down
+  // HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, 1);
+  // HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, 0);
+  // HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, 1);
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_SET); // Test tt motor
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_RESET);
   calibrateGyro(G_off);
@@ -149,8 +155,9 @@ int main(void) {
   //                                    rotr,  rotb,  take, puth0, puth1,
   //                                    puth2, puth3, stop};
   BotInstruction instructions[50] = {movf, stop};
+  // BotInstruction instructions[5] = {stop};
   uint8_t index = 0;
-  bool calibrateFlag = false;
+  BotInstruction curr = instructions[0];
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -159,24 +166,26 @@ int main(void) {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    testPID = calibrationPID();
+    // testPID = calibrationPID();
+    testPID = getForwardBackwardError();
     updateYawPitchRoll();
-    switch (instructions[index]) {
+    readGreyscale();
+    switch (curr) {
     case movr:
       break;
     case movf:
-      // moveForward(100);
+      moveForward(100);
       if (moveCount++ >= 30) {
         if (checkForwardEnd()) {
-          // calibrateFlag = true;
           moveCount = 0;
-          index++;
+          curr = calibrate;
         }
       }
       break;
     case movl:
       break;
     case movb:
+      moveBackward(100);
       break;
 
     case rotl:
@@ -201,12 +210,15 @@ int main(void) {
     case stop:
       stopMotor();
       break;
-    }
 
-    if (calibrateFlag) {
-      calibrateOrientation();
-      resetQuaternions();
-      calibrateFlag = false;
+    case calibrate:
+      stopMotor();
+      // calibrateOrientation();
+      // if (isCentered()) {
+      //   resetQuaternions();
+      //   curr = instructions[++index];
+      // }
+      break;
     }
 
     counter++; // Delay without interrupting other processes
