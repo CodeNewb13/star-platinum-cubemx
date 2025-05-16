@@ -26,7 +26,7 @@ void readGreyscale(void) {
  * 3 |       | 3
  * 2 |       | 2
  * 1 |       | 1
- * 0 |       | 0
+ * 0 |       | 0 Ignore these reading in sensor[0], as there's error
  *   =========
  *     0 1 2
  */
@@ -95,12 +95,9 @@ int PID(void) {
   int correction = 0;
 
   readGreyscale();
-  for (int j = -3; j <= 3; j++) {
+  for (int j = -1; j <= 1; j++) {
     sensor_average += !sensor[j + 3] * j; // weighted mean
     sensor_sum += !sensor[j + 3];         // left positive, right negative
-    if (sensor_sum >= 3)
-      sensor_average = 0; // Ignore when sensor reading is
-    // more than 3
   }
 
   error = (int)(sensor_average / sensor_sum);
@@ -126,22 +123,24 @@ int getForwardBackwardError(void) {
   const uint8_t weightArr[4] = {-3, -1, 1, 3};
 
   // Left sensor
-  for (int i = 0; i < 4; i++) {
+  for (int i = 1; i < 4; i++) {
     tempSum += sensor_left[i] * weightArr[i] * weight;
     tempCount += sensor_left[i];
-    if (tempCount >= 3 && tempSum == 0) {
+    if (tempCount >= 4 && tempSum == 0) {
       tempSum = 0;
       tempCount = 0;
     }
   }
   sum += tempSum;
   count += tempCount;
+  tempSum = 0;
+  tempCount = 0;
 
   // Right sensor
-  for (int i = 0; i < 4; i++) {
+  for (int i = 1; i < 4; i++) {
     tempSum += sensor_right[i] * weightArr[i] * weight;
     tempCount += sensor_right[i];
-    if (tempCount >= 3 && tempSum == 0) {
+    if (tempCount >= 4 && tempSum == 0) {
       tempSum = 0;
       tempCount = 0;
     }
@@ -186,14 +185,14 @@ int getOrientationError(void) {
 
   int offset = 2;
   // Read sensor left
-  for (int i = -2; i <= 2; i++) {
+  for (int i = -1; i <= 2; i++) {
     if (i == 0) {
       offset = 1;
       continue;
     }
     tempAvg += sensor_left[i + offset] * i * weight;
     tempSum += sensor_left[i + offset];
-    if (tempSum >= 3 || tempAvg == 0) {
+    if (tempSum >= 4 || tempAvg == 0) {
       tempAvg = 0;
       tempSum = 0;
     }
@@ -202,15 +201,17 @@ int getOrientationError(void) {
   // Read sensor right
   sum += tempSum;
   avg += tempAvg;
+  tempSum = 0;
+  tempAvg = 0;
   offset = 2;
-  for (int i = -2; i <= 2; i++) {
+  for (int i = -1; i <= 2; i++) {
     if (i == 0) {
       offset = 1;
       continue;
     }
     tempAvg += sensor_right[i + offset] * i * weight * (-1);
     tempSum += sensor_right[i + offset];
-    if (tempSum >= 3 || tempAvg == 0) {
+    if (tempSum >= 4 || tempAvg == 0) {
       tempAvg = 0;
       tempSum = 0;
     }
@@ -219,6 +220,8 @@ int getOrientationError(void) {
   // Read sensor back
   sum += tempSum;
   avg += tempAvg;
+  tempSum = 0;
+  tempAvg = 0;
   for (int i = -1; i <= 1; i++) {
     tempAvg += sensor_back[i + 1] * i * weight * (-1);
     tempSum += sensor_back[i + 1];
@@ -234,6 +237,12 @@ int getOrientationError(void) {
     error = (int)avg / sum;
   else
     error = 0;
+
+  // Fixed value
+  if (error > 0)
+    error = 1;
+  else if (error < 0)
+    error = -1;
   return error;
 }
 
@@ -274,18 +283,32 @@ bool FourLineCross(void) {
   return true;
 }
 
+bool isLeftEmpty(void) {
+  return !sensor_left[1] && !sensor_left[2] && !sensor_left[3];
+}
+
+bool isRightEmpty(void) {
+  return !sensor_right[1] && !sensor_right[2] && !sensor_right[3];
+}
+
+bool isLeftRightSame(void) {
+  bool temp;
+  for (int i = 1; i < 4; i++) {
+    temp |= (sensor_left[i] == sensor_right[i]);
+  }
+  return temp;
+}
+
 bool isLeftCentered(void) {
-  return sensor_left[0] == 0 && sensor_left[1] == 1 && sensor_left[2] == 0 &&
-         sensor_left[3] == 0;
+  return sensor_left[1] == 1 && sensor_left[2] == 1 && sensor_left[3] == 0;
 }
 
 bool isBackCentered(void) {
-  return sensor_back[0] == 0 && sensor_back[1] == 1 && sensor_back[2] == 0;
+  return sensor_back[0] == 1 && sensor_back[1] == 1 && sensor_back[2] == 1;
 }
 
 bool isRightCentered(void) {
-  return sensor_right[0] == 0 && sensor_right[1] == 1 && sensor_right[2] == 0 &&
-         sensor_right[3] == 0;
+  return sensor_right[1] == 1 && sensor_right[2] == 1 && sensor_right[3] == 0;
 }
 
 bool isCentered(void) {
