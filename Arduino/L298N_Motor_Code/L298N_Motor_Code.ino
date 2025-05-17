@@ -6,7 +6,6 @@ long duration;
 int distance;
 
 void setup() {
-  
   pinMode(enA, OUTPUT);
   pinMode(in1, OUTPUT);
   pinMode(in2, OUTPUT);
@@ -67,11 +66,15 @@ int ReadInput(){
 void ConveyorForward(){
   forward(in1, in2, enA);
   forward(in5, in6, enC);
+  delay(1500);
+  ConveyorStop();
 }
 
 void ConveyorReverse(){
   reverse(in1, in2, enA);
   reverse(in5, in6, enC);
+  delay(1500);
+  ConveyorStop();
 }
 
 void ConveyorStop(){
@@ -85,10 +88,14 @@ void ConveyorStop(){
 
 void Up(){
   forward(in3, in4, enB);
+  CheckSensor();
+  RestVertical();
 }
 
 void Down(){
   reverse(in3, in4, enB);
+  CheckSensor();
+  RestVertical();
 }
 
 void RestVertical(){
@@ -104,15 +111,13 @@ void CheckSensor(){
   while(1){
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
-  // Sets the trigPin on HIGH state for 10 micro seconds
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
-  // Reads the echoPin, returns the sound wave travel time in microseconds
+
   duration = pulseIn(echoPin, HIGH);
-  // Calculating the distance
-  distance = duration * 0.034 / 2;
-  if(distance<=3 || distance>=25) return;
+  distance = (duration*.0343)/2;
+  if((distance >= 2 && distance <=40) && (distance <= 4 || distance <= 24)) return;
   }
 }
 /*
@@ -130,7 +135,10 @@ Input 1 2 3
 
 */
 void loop() {
-  int signal = 0b010;//ReadInput();
+ConveyorForward();
+ConveyorReverse();
+  
+  /*int signal = 0b010;//ReadInput();
   signal = 0b101;
   switch(signal) {
     case 0b000: // 000
@@ -168,5 +176,5 @@ void loop() {
       break;
     default:
       break;
-  }
+  }*/
  }
