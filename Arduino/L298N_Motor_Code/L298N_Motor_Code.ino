@@ -125,11 +125,11 @@ Input 1 2 3
       0 0 0 -> Nothing moving
       0 0 1 -> Conveyor forward
       0 1 0 -> Conveyor reverse
-      0 1 1 -> 
+      0 1 1 -> Down
       1 0 0 -> Rest vertical 
-      1 0 1 -> Down
-      1 1 0 -> Up
-      1 1 1 ->
+      1 0 1 -> Down until sensor
+      1 1 0 -> Up until sensor
+      1 1 1 -> Up
 
 
 
@@ -152,8 +152,7 @@ void loop() {
       RestVertical();
       break;
     case 0b011: // 011
-      
-      ConveyorStop();
+      reverse(in3, in4, enB);
       break;
     case 0b100: // 100
       RestVertical();
@@ -170,7 +169,7 @@ void loop() {
       CheckSensor()
       break;
     case 0b111: // 111
-
+      forward(in3, in4, enB);
       break;
     default:
       break;
