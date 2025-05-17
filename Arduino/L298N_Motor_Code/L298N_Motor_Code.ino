@@ -135,10 +135,8 @@ Input 1 2 3
 
 */
 void loop() {
-ConveyorForward();
-ConveyorReverse();
   
-  /*int signal = 0b010;//ReadInput();
+  int signal = 0b010;//ReadInput();
   signal = 0b101;
   switch(signal) {
     case 0b000: // 000
@@ -176,5 +174,5 @@ ConveyorReverse();
       break;
     default:
       break;
-  }*/
+  }
  }
