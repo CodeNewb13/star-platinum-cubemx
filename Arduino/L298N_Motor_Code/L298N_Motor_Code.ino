@@ -1,6 +1,9 @@
 const int enA = 3, enB = 11, enC = 9; 
 const int in1 = 1, in2 = 2, in3 = 12, in4 = 13, in5 = 7, in6 = 8; 
+const int trigPin = 5, echoPin = 6;
 const int in1pin = A0, in2pin = A1, in3pin = A2; //input data
+long duration;
+int distance;
 
 void setup() {
   
@@ -16,6 +19,8 @@ void setup() {
   pinMode(in1pin, INPUT); //input signal from stm32 to arduino
   pinMode(in2pin, INPUT);
   pinMode(in3pin, INPUT);
+  pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
+  pinMode(echoPin, INPUT); // Sets the echoPin as an Input
 
 
   // power up logic outputs
@@ -94,6 +99,22 @@ void RestVertical(){
   digitalWrite(in6, HIGH);
   analogWrite(enC, 0);
 }
+
+void CheckSensor(){
+  while(1){
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  // Sets the trigPin on HIGH state for 10 micro seconds
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  // Reads the echoPin, returns the sound wave travel time in microseconds
+  duration = pulseIn(echoPin, HIGH);
+  // Calculating the distance
+  distance = duration * 0.034 / 2;
+  if(distance<=3 || distance>=25) return;
+  }
+}
 /*
 Input 1 2 3
       0 0 0 -> Nothing moving
@@ -109,36 +130,38 @@ Input 1 2 3
 
 */
 void loop() {
-  int signal = ReadInput();
+  int signal = 0b010;//ReadInput();
   signal = 0b101;
   switch(signal) {
     case 0b000: // 000
-    ConveyorStop();
-    RestVertical();
+      ConveyorStop();
+      RestVertical();
       break;
     case 0b001: // 001
-    ConveyorForward();
-    RestVertical();
+      ConveyorForward();
+      RestVertical();
       break;
     case 0b010: // 010
-    ConveyorReverse();
-    RestVertical();
+      ConveyorReverse();
+      RestVertical();
       break;
     case 0b011: // 011
-    
-    ConveyorStop();
+      
+      ConveyorStop();
       break;
     case 0b100: // 100
-    RestVertical();
-    ConveyorStop();
+      RestVertical();
+      ConveyorStop();
       break;
     case 0b101: // 101
-    Down();
-    ConveyorStop();
+      Down();
+      ConveyorStop();
+      CheckSensor()
       break;
-    case 0b110: // 101
-    Up();
-    ConveyorStop();
+    case 0b110: // 110
+      Up();
+      ConveyorStop();
+      CheckSensor()
       break;
     case 0b111: // 111
 
