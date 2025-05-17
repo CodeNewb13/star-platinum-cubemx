@@ -136,8 +136,7 @@ Input 1 2 3
 */
 void loop() {
   
-  int signal = 0b010;//ReadInput();
-  signal = 0b101;
+  int signal = ReadInput();
   switch(signal) {
     case 0b000: // 000
       ConveyorStop();
@@ -161,12 +160,12 @@ void loop() {
     case 0b101: // 101
       Down();
       ConveyorStop();
-      CheckSensor()
+      CheckSensor();
       break;
     case 0b110: // 110
       Up();
       ConveyorStop();
-      CheckSensor()
+      CheckSensor();
       break;
     case 0b111: // 111
       forward(in3, in4, enB);
