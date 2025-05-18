@@ -107,19 +107,31 @@ void RestVertical(){
   analogWrite(enC, 0);
 }
 
-void CheckSensor(){
-  while(1){
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
+void CheckSensor() {
+  while (1) {
+    digitalWrite(trigPin, LOW);
+    delayMicroseconds(2);
+    digitalWrite(trigPin, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(trigPin, LOW);
 
-  duration = pulseIn(echoPin, HIGH);
-  distance = (duration*.0343)/2;
-  if((distance >= 2 && distance <=40) && (distance <= 4 || distance <= 24)) return;
+    duration = pulseIn(echoPin, HIGH, 30000); // timeout after 30ms (max 5 meters)
+    distance = (duration * 0.0343) / 2;
+
+    // Ignore invalid readings
+    if (distance < 2 || distance > 400) {
+      continue; // Skip and try again
+    }
+
+    // Return if object is too close or too far
+    if (distance <= 10 || distance >= 24) {
+      return;
+    }
+
+    delay(50); // Reduce polling rate
   }
 }
+
 /*
 Input 1 2 3
       0 0 0 -> Nothing moving
@@ -161,11 +173,13 @@ void loop() {
       Down();
       ConveyorStop();
       CheckSensor();
+      RestVertical();
       break;
     case 0b110: // 110
       Up();
       ConveyorStop();
       CheckSensor();
+      RestVertical();
       break;
     case 0b111: // 111
       forward(in3, in4, enB);
