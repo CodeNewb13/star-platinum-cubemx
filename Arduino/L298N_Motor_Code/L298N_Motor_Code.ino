@@ -99,12 +99,9 @@ void Down(){
 }
 
 void RestVertical(){
-  digitalWrite(in1, HIGH);
-  digitalWrite(in2, HIGH);
-  analogWrite(enA, 0);
-  digitalWrite(in5, HIGH);
-  digitalWrite(in6, HIGH);
-  analogWrite(enC, 0);
+  digitalWrite(in3, HIGH);
+  digitalWrite(in4, HIGH);
+  analogWrite(enB, 0);
 }
 
 void CheckSensor() {
