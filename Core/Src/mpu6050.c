@@ -134,7 +134,7 @@ u8 MPU_Get_Gyroscope(short *gx, short *gy, short *gz) {
 void calibrateGyro(float *G_off) {
   // Calculate the current reading for 2 seconds
   short gx, gy, gz = 0;
-  for (int i = 0; i < 500; i++) {
+  for (int i = 0; i < 2000; i++) {
     MPU_Get_Gyroscope(&gx, &gy, &gz);
     G_off[0] += gx;
     G_off[1] += gy;

@@ -5,6 +5,7 @@
 
 void moveForward(int rpm);
 bool checkForwardEnd(void);
+bool checkLeftEnd(void);
 void moveBackward(int rpm);
 void moveLeft(int rpm);
 void moveRight(int rpm);

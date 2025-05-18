@@ -14,5 +14,5 @@
 #define Read_IO10 HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_15)
 #define Read_IO11 HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_11)
 #define Read_IO12 HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_10)
-#define TT_MotorCD_Enable() GPIO_SetBits(GPIOA, GPIO_PIN_4)
-#define TT_MotorCD_Disable() GPIO_ResetBits(GPIOA, GPIO_PIN_4)
+#define TT_MotorCD_Enable() HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, 1)
+#define TT_MotorCD_Disable() HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, 0)

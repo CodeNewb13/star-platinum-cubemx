@@ -25,14 +25,17 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "algo.h"
+#include "conveyor.h"
+#include "definitions.h"
 #include "mahony.h"
 #include "math.h"
 #include "motor.h"
 #include "movement.h"
 #include "mpu6050.h"
 #include "pid.h"
-#include "types.h"
 #include <stdint.h>
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -66,9 +69,14 @@ PID_Controller pid;
 float Axyz[3];
 float Gxyz[3];
 uint8_t moveCount = 0;
+uint8_t calCount = 0;
+int corrections[4] = {0};
 // Raw data
 short ax = 0, ay = 0, az = 0;
 short gx = 0, gy = 0, gz = 0;
+BotInstruction curr, prev;
+bool calibrated;
+extern FlameColor map[5][5];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -148,16 +156,32 @@ int main(void) {
   // HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, 1);
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_12, GPIO_PIN_SET); // Test tt motor
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_RESET);
-  calibrateGyro(G_off);
+  // calibrateGyro(G_off);
   // calibrateAcc(A_cal);
 
   // BotInstruction instructions[50] = {movr,  movf,  movl, movb,  rotl,
   //                                    rotr,  rotb,  take, puth0, puth1,
   //                                    puth2, puth3, stop};
+  // BotInstruction instructions[50] = {movf, stop};
+  PID_Init(&pid, 10, 0, 0);
   BotInstruction instructions[50] = {movf, stop};
-  // BotInstruction instructions[5] = {stop};
   uint8_t index = 0;
-  BotInstruction curr = instructions[0];
+  // Initialize bot struct
+  Bot bot;
+  bot.x = 2;
+  bot.y = 0;
+  bot.orientation = Bottom;
+
+  // optimizeTorchPlacementStrategy(map, &bot, instructions);
+
+  curr = instructions[index];
+  WORM_UP_SENSOR();
+  // Start only when the sensor bot is centered
+  readGreyscale();
+  while (sensor_left[1] == 1 && sensor_left[1] == 1 && sensor_back[2] == 1) {
+    readGreyscale();
+    HAL_Delay(10);
+  }
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -166,45 +190,125 @@ int main(void) {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    // testPID = calibrationPID();
-    testPID = getForwardBackwardError();
     updateYawPitchRoll();
+    yaw += -2;
     readGreyscale();
     switch (curr) {
     case movr:
-      break;
-    case movf:
-      moveForward(100);
-      if (moveCount++ >= 30) {
-        if (checkForwardEnd()) {
+      moveRight(150);
+      if (moveCount++ >= 50) {
+        if (checkLeftEnd()) {
           moveCount = 0;
-          curr = calibrate;
+          curr = instructions[++index];
         }
       }
       break;
+    case movf:
+      if (calibrated || prev == movr || prev == movl) {
+        // moveForward(100);
+        // motorForward(100, 0);
+        Set_Motor1_RPM(105);
+        Set_Motor2_RPM(105);
+        Set_Motor3_RPM(100);
+        Set_Motor4_RPM(100);
+        if (moveCount++ >= 50) {
+          if (checkForwardEnd()) {
+            moveCount = 0;
+            curr = instructions[++index];
+            calibrated = false;
+          }
+        }
+      } else
+        curr = calibrate;
+      break;
     case movl:
+      testPID = (PID_Left());
+      moveLeft(70);
+      if (moveCount++ >= 50) {
+        if (checkLeftEnd()) {
+          moveCount = 0;
+          curr = instructions[++index];
+        }
+      }
       break;
     case movb:
-      moveBackward(100);
+      moveBackward(200);
+      if (moveCount++ >= 50) {
+        if (checkForwardEnd()) {
+          moveCount = 0;
+          curr = instructions[++index];
+        }
+      }
       break;
 
     case rotl:
+      motorCCW(100);
+      if (moveCount++ >= 40) {
+        if (sensor_back[2] == 1) {
+          moveCount = 0;
+          curr = instructions[++index];
+        }
+      }
       break;
     case rotr:
+      motorCW(100);
+      if (moveCount++ >= 40) {
+        if (sensor_back[2] == 1) {
+          moveCount = 0;
+          curr = instructions[++index];
+        }
+      }
       break;
     case rotb:
+      motorCCW(100);
+      if (moveCount++ >= 40) {
+        if (sensor_back[2] == 1) {
+          moveCount = 0;
+          curr = rotl; // Effectively, doing 2, back to back rotations
+        }
+      }
       break;
 
     case take:
+      CONVEYOR_TAKE();
+      curr = movf;
       break;
 
     case puth0:
+      moveForward(100);
+      HAL_Delay(1500);
+      moveLeft(100);
+      HAL_Delay(200);
+      stopMotor();
+      CONVEYOR_PUT();
+      HAL_Delay(1500);
+      curr = instructions[++index];
       break;
     case puth1:
+      moveRight(100);
+      HAL_Delay(200);
+      stopMotor();
+      CONVEYOR_PUT();
+      HAL_Delay(1500);
+      curr = instructions[++index];
       break;
     case puth2:
+      moveRight(100);
+      HAL_Delay(200);
+      stopMotor();
+      CONVEYOR_PUT();
+      HAL_Delay(1500);
+      curr = instructions[++index];
       break;
     case puth3:
+      moveForward(100);
+      HAL_Delay(1500);
+      moveRight(100);
+      HAL_Delay(200);
+      stopMotor();
+      CONVEYOR_PUT();
+      HAL_Delay(1500);
+      curr = instructions[++index];
       break;
 
     case stop:
@@ -212,12 +316,45 @@ int main(void) {
       break;
 
     case calibrate:
-      stopMotor();
-      // calibrateOrientation();
-      // if (isCentered()) {
+      // if (isLeftEmpty() || isRightEmpty()) {
+      //   moveBackward(100);
+      // while (1) {
+      // if (isBackCentered() && calCount++ >= 15) {
       //   resetQuaternions();
       //   curr = instructions[++index];
+      //   calCount = 0;
+      // } else {
+      // readGreyscale();
+      // corrections[0] = 0;
+      // corrections[1] = 0;
+      // corrections[2] = 0;
+      // corrections[3] = 0;
+      // PID_Calibrate(corrections);
+      // Set_Motor1_RPM(corrections[0]);
+      // Set_Motor2_RPM(corrections[1]);
+      // Set_Motor3_RPM(corrections[2]);
+      // Set_Motor4_RPM(corrections[3]);
       // }
+      //   HAL_Delay(10);
+      // }
+      // calibrateOrientation();
+      // if (calCount++ < 40) {
+      //   moveLeft(100);
+      // } else {
+      //   moveRight(100);
+      //   if (checkLeftEnd()) {
+      //     moveCount = 0;
+      //     curr = movf;
+      //     resetQuaternions();
+      //     calibrated = true;
+      //   }
+      // }
+      if (!isLeftRightSame()) {
+        int mult = getOrientationError();
+        rotateCW(100 * mult);
+        curr = instructions[++index];
+      }
+
       break;
     }
 
@@ -271,7 +408,8 @@ void SystemClock_Config(void) {
  */
 void Error_Handler(void) {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
+  /* User can add his own implementation to report the HAL error return state
+   */
   __disable_irq();
   while (1) {
   }
@@ -289,8 +427,8 @@ void Error_Handler(void) {
 void assert_failed(uint8_t *file, uint32_t line) {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line
-     number, ex: printf("Wrong parameters value: file %s on line %d\r\n", file,
-     line) */
+     number, ex: printf("Wrong parameters value: file %s on line %d\r\n",
+     file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

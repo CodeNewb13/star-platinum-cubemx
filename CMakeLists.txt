@@ -54,12 +54,14 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     Core/Src/pid.c
     Core/Src/mpu6050.c
     Core/Src/mahony.c
-    Core/Src/utils.c
+    Core/movementAlgorithm/utils.c
+    Core/movementAlgorithm/algo.c
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
+    Core/movementAlgorithm/
 )
 
 # Add project symbols (macros)

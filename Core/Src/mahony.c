@@ -172,6 +172,7 @@ void updateYawPitchRoll(void) {
   yaw = filtered_yaw;
   pitch *= 180.0 / M_PI;
   roll *= 180.0 / M_PI;
+  yaw -= 0.2;
 }
 
 void resetQuaternions(void) {

@@ -1,13 +1,14 @@
 #include "pid.h"
 #include "bsp.h"
 #include "mpu6050.h"
+#include "stm32f1xx_hal_gpio.h"
 #include <math.h>
 #include <stdint.h>
 
 // TODO: look up how this function can be implemented and utilized
 int error = 0;
 uint8_t sensor[7];
-uint8_t sensor_back[3];
+uint8_t sensor_back[5];
 uint8_t sensor_left[4];
 uint8_t sensor_right[4];
 // NOTE: sensor left and right lights turned on convention is the opposite of
@@ -23,25 +24,27 @@ void readGreyscale(void) {
   // invertSensor(); // Uncomment for black on white (competition scenario)
 }
 /* Sensor mounting illustration
- * 3 |       | 3
- * 2 |       | 2
- * 1 |       | 1
- * 0 |       | 0 Ignore these reading in sensor[0], as there's error
- *   =========
- *     0 1 2
+ * 3 |           | 3 // Pin delegated for back sensor
+ * 2 |           | 2
+ * 1 |           | 1
+ * 0 |           | 0
+ *   =============
+ *     0 1 2 3 4
  */
 void readGreyscaleLeft(void) {
-  sensor_left[0] = Read_IO12; // CCW (left of center axis)
-  sensor_left[1] = Read_IO11;
-  sensor_left[2] = Read_IO10;
+  sensor_left[0] = Read_IO11; // CCW (left of center axis)
+  sensor_left[1] = Read_IO10;
+  sensor_left[2] = Read_IO12;
   sensor_left[3] = Read_IO9; // CW (right of center axis)
   invertSensorLeft();
 }
 
 void readGreyscaleBack(void) {
   sensor_back[0] = Read_IO6; // CW
-  sensor_back[1] = Read_IO7;
-  sensor_back[2] = Read_IO8; // CCW
+  sensor_back[1] = Read_IO9;
+  sensor_back[2] = Read_IO7;
+  sensor_back[3] = Read_IO5;
+  sensor_back[4] = Read_IO8; // CCW
   // invertSensorBack();
 }
 
@@ -73,7 +76,7 @@ void invertSensorRight(void) {
 }
 
 void invertSensorBack(void) {
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 5; i++) {
     sensor_back[i] = !sensor_back[i];
   }
 }
@@ -81,26 +84,211 @@ void invertSensorBack(void) {
 // TODO: check the algorithm
 // TODO: implement fuzzy PID ???
 int pos = 0;
-int PID(void) {
+int PID_Back(void) {
   int sensor_average = 0;
   int sensor_sum = 0;
   static int p = 0;
   static int i = 0;
   static int d = 0;
   static int lp = 0;
-  int Kp = 65;
-  float Ki = 0.1;
+  int Kp = 50;
+  float Ki = 0;
   int Kd = 0; // (Kp-1) * 10
   error = 0;
   int correction = 0;
 
-  readGreyscale();
-  for (int j = -1; j <= 1; j++) {
-    sensor_average += !sensor[j + 3] * j; // weighted mean
-    sensor_sum += !sensor[j + 3];         // left positive, right negative
+  const int8_t weightArr[5] = {-2, -1, 0, 1, 2};
+  for (int j = 0; j < 5; j++) {
+    sensor_average += sensor_back[j] * weightArr[j]; // weighted mean
+    sensor_sum += sensor_back[j]; // left positive, right negative
   }
 
-  error = (int)(sensor_average / sensor_sum);
+  if (sensor_sum > 0)
+    error = (int)(sensor_average / sensor_sum);
+  else
+    error = 0;
+
+  p = error;
+  i += p;
+  d = p - lp;
+
+  lp = p;
+
+  // Limit integrate
+  if (i > 100)
+    i = 100;
+  return correction = (int)(Kp * p + Ki * i + Kd * d);
+}
+
+void PID_Calibrate(int *correctionArr) {
+  // int tempSum = 0;
+  // int tempAvg = 0;
+  int correction = 0;
+  // const int weight = 2;
+  // int p = 0, d;
+  // static int il = 0, ir = 0, ib = 0;
+  // const int kp = 5;
+  // const float ki = 0.1;
+
+  // Read sensor left
+  // const int8_t leftWeightArr[3] = {2, 0, -2};
+  // for (int i = 0; i < 3; i++) {
+  //   tempAvg += sensor_left[i] * leftWeightArr[i] * weight;
+  //   tempSum += sensor_left[i];
+  //   if (tempSum >= 4 || tempAvg == 0 || tempSum == 0) {
+  //     tempAvg = 0;
+  //     tempSum = 0;
+  //   }
+  // }
+  // if (tempSum > 0)
+  //   correction = ((kp + 10)) * (tempAvg / tempSum);
+  // else
+  //   correction = 0;
+  // correctionArr[0] += +correction;
+  // correctionArr[1] += -correction;
+  // correctionArr[2] += -correction;
+  // correctionArr[3] += +correction;
+  //
+  // Read sensor right
+  // tempSum = 0;
+  // tempAvg = 0;
+  // const int8_t rightWeightArr[3] = {-2, 0, 2};
+  // for (int i = 0; i < 3; i++) {
+  //   tempAvg += sensor_right[i] * rightWeightArr[i] * weight;
+  //   tempSum += sensor_right[i];
+  //   if (tempSum >= 4 || tempAvg == 0) {
+  //     tempAvg = 0;
+  //     tempSum = 0;
+  //   }
+  // }
+  // if (tempSum > 0)
+  //   correction = ((kp + 10) / 2) * (tempAvg / tempSum);
+  // else
+  //   correction = 0;
+  // correctionArr[0] += -correction;
+  // correctionArr[1] += +correction;
+  // correctionArr[2] += +correction;
+  // correctionArr[3] += -correction;
+
+  // Read sensor back
+  // tempSum = 0;
+  // tempAvg = 0;
+  // const int8_t backWeightArr[5] = {-2, -1, 0, 1, 2};
+  // for (int i = 0; i < 5; i++) {
+  //   tempAvg += sensor_back[i] * backWeightArr[i] * weight;
+  //   tempSum += sensor_back[i];
+  //   if (tempSum >= 3 || tempAvg == 0) {
+  //     tempAvg = 0;
+  //     tempSum = 0;
+  //   }
+  // }
+  // if (tempSum > 0)
+  //   correction = (p + 20) * (tempAvg / tempSum);
+  // else
+  //   correction = 0;
+  // correctionArr[0] += -correction;
+  // correctionArr[1] += -correction;
+  // correctionArr[2] += +correction;
+  // correctionArr[3] += +correction;
+
+  // Left
+  correction = PID_Left() * 15 / 10;
+  correctionArr[0] += correction / 2;
+  correctionArr[1] -= correction / 2;
+  correctionArr[2] += correction / 2;
+  correctionArr[3] -= correction / 2;
+
+  // Right
+  correction = PID_Right() * 15 / 10;
+  correctionArr[0] -= 20 - (correction / 2);
+  correctionArr[1] += -(20 + correction / 2);
+  correctionArr[2] -= 20 + (correction / 2);
+  correctionArr[3] += -(20 - correction / 2);
+
+  // Back
+  correction = PID_Back() * 15 / 10;
+  correctionArr[0] += 20 - correction;
+  correctionArr[1] += 20 - correction;
+  correctionArr[2] += 20 + correction;
+  correctionArr[3] += 20 + correction;
+
+  // if (correctionArr[0] > 0)
+  //   correctionArr[0] += 50;
+  // else if (correctionArr[0] < 0)
+  //   correctionArr[0] -= 50;
+  // if (correctionArr[1] > 0)
+  //   correctionArr[1] += 50;
+  // else if (correctionArr[1] < 0)
+  //   correctionArr[1] -= 50;
+  // if (correctionArr[2] > 0)
+  //   correctionArr[2] += 50;
+  // else if (correctionArr[2] < 0)
+  //   correctionArr[2] -= 50;
+  // if (correctionArr[3] > 0)
+  //   correctionArr[3] += 50;
+  // else if (correctionArr[3] < 0)
+  //   correctionArr[3] -= 50;
+}
+
+int PID_Left(void) {
+  int sensor_average = 0;
+  int sensor_sum = 0;
+  static int p = 0;
+  static int i = 0;
+  static int d = 0;
+  static int lp = 0;
+  int Kp = 30;
+  float Ki = 0;
+  int Kd = 0; // (Kp-1) * 10
+  error = 0;
+  int correction = 0;
+
+  const int8_t weight[3] = {-1, 0, 1};
+  for (int j = 0; j < 3; j++) {
+    sensor_average += sensor_left[j] * weight[j] * 2; // weighted mean
+    sensor_sum += sensor_left[j]; // left positive, right negative
+  }
+
+  if (sensor_sum > 0)
+    error = (int)(sensor_average / sensor_sum);
+  else
+    error = 0;
+
+  p = error;
+  i += p;
+  d = p - lp;
+
+  lp = p;
+
+  // Limit integrate
+  if (i > 100)
+    i = 100;
+  return correction = (int)(Kp * p + Ki * i + Kd * d);
+}
+
+int PID_Right(void) {
+  int sensor_average = 0;
+  int sensor_sum = 0;
+  static int p = 0;
+  static int i = 0;
+  static int d = 0;
+  static int lp = 0;
+  int Kp = 30;
+  float Ki = 0;
+  int Kd = 0; // (Kp-1) * 10
+  error = 0;
+  int correction = 0;
+
+  const int8_t weight[3] = {1, 0, -1};
+  for (int j = 0; j < 3; j++) {
+    sensor_average += sensor_right[j] * weight[j] * 2; // weighted mean
+    sensor_sum += sensor_right[j]; // left positive, right negative
+  }
+
+  if (sensor_sum > 0)
+    error = (int)(sensor_average / sensor_sum);
+  else
+    error = 0;
 
   p = error;
   i += p;
@@ -120,10 +308,10 @@ int getForwardBackwardError(void) {
   int tempCount = 0;
   int tempSum = 0;
   const int weight = 2;
-  const uint8_t weightArr[4] = {-3, -1, 1, 3};
+  const int8_t weightArr[4] = {-3, -1, 1, 3};
 
   // Left sensor
-  for (int i = 1; i < 4; i++) {
+  for (int i = 0; i < 4; i++) {
     tempSum += sensor_left[i] * weightArr[i] * weight;
     tempCount += sensor_left[i];
     if (tempCount >= 4 && tempSum == 0) {
@@ -137,7 +325,7 @@ int getForwardBackwardError(void) {
   tempCount = 0;
 
   // Right sensor
-  for (int i = 1; i < 4; i++) {
+  for (int i = 0; i < 4; i++) {
     tempSum += sensor_right[i] * weightArr[i] * weight;
     tempCount += sensor_right[i];
     if (tempCount >= 4 && tempSum == 0) {
@@ -159,7 +347,7 @@ int getLeftRightError(void) {
   int sum = 0;
   int count = 0;
   const int weight = 2;
-  const uint8_t weightArr[3] = {1, 0, -1};
+  const int8_t weightArr[3] = {1, 0, -1};
 
   for (int i = 0; i < 3; i++) {
     sum += sensor_back[i] * weightArr[i] * weight;
@@ -185,12 +373,13 @@ int getOrientationError(void) {
 
   int offset = 2;
   // Read sensor left
-  for (int i = -1; i <= 2; i++) {
+  const int8_t leftWeightArr[3] = {-1, 0, 1};
+  for (int i = 0; i < 3; i++) {
     if (i == 0) {
       offset = 1;
       continue;
     }
-    tempAvg += sensor_left[i + offset] * i * weight;
+    tempAvg += sensor_left[i + offset] * leftWeightArr[i] * weight;
     tempSum += sensor_left[i + offset];
     if (tempSum >= 4 || tempAvg == 0) {
       tempAvg = 0;
@@ -204,12 +393,13 @@ int getOrientationError(void) {
   tempSum = 0;
   tempAvg = 0;
   offset = 2;
-  for (int i = -1; i <= 2; i++) {
+  const int8_t rightWeightArr[3] = {1, 0, -1};
+  for (int i = 0; i < 4; i++) {
     if (i == 0) {
       offset = 1;
       continue;
     }
-    tempAvg += sensor_right[i + offset] * i * weight * (-1);
+    tempAvg += sensor_right[i + offset] * rightWeightArr[i] * weight;
     tempSum += sensor_right[i + offset];
     if (tempSum >= 4 || tempAvg == 0) {
       tempAvg = 0;
@@ -218,18 +408,19 @@ int getOrientationError(void) {
   }
 
   // Read sensor back
-  sum += tempSum;
-  avg += tempAvg;
-  tempSum = 0;
-  tempAvg = 0;
-  for (int i = -1; i <= 1; i++) {
-    tempAvg += sensor_back[i + 1] * i * weight * (-1);
-    tempSum += sensor_back[i + 1];
-    if (tempSum >= 3 || tempAvg == 0) {
-      tempAvg = 0;
-      tempSum = 0;
-    }
-  }
+  // sum += tempSum;
+  // avg += tempAvg;
+  // tempSum = 0;
+  // tempAvg = 0;
+  // const int8_t backWeightArr[3] = {1, 0, -1};
+  // for (int i = 0; i < 2; i++) {
+  //   tempAvg += sensor_back[i + 1] * backWeightArr[i] * weight;
+  //   tempSum += sensor_back[i + 1];
+  //   if (tempSum >= 3 || tempAvg == 0) {
+  //     tempAvg = 0;
+  //     tempSum = 0;
+  //   }
+  // }
   sum += tempSum;
   avg += tempAvg;
 
@@ -293,22 +484,23 @@ bool isRightEmpty(void) {
 
 bool isLeftRightSame(void) {
   bool temp;
-  for (int i = 1; i < 4; i++) {
+  for (int i = 0; i < 3; i++) {
     temp |= (sensor_left[i] == sensor_right[i]);
   }
   return temp;
 }
 
 bool isLeftCentered(void) {
-  return sensor_left[1] == 1 && sensor_left[2] == 1 && sensor_left[3] == 0;
+  return sensor_left[0] == 0 && sensor_left[1] == 1 && sensor_left[2] == 0;
 }
 
 bool isBackCentered(void) {
-  return sensor_back[0] == 1 && sensor_back[1] == 1 && sensor_back[2] == 1;
+  return sensor_back[0] == 0 && sensor_back[1] == 1 && sensor_back[2] == 1 &&
+         sensor_back[3] == 1 && sensor_back[4] == 0;
 }
 
 bool isRightCentered(void) {
-  return sensor_right[1] == 1 && sensor_right[2] == 1 && sensor_right[3] == 0;
+  return sensor_right[0] == 0 && sensor_right[1] == 1 && sensor_right[2] == 0;
 }
 
 bool isCentered(void) {

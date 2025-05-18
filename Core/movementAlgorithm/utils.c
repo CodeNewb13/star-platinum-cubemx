@@ -1,5 +1,5 @@
 #include "utils.h"
-#include "types.h"
+// #include "types.h" - Already included via definitions.h
 #include <stdint.h>
 
 uint8_t findMin(uint8_t *arr, uint8_t size) {
