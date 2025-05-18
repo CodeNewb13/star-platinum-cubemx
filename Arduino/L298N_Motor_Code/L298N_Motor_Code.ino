@@ -112,12 +112,11 @@ void CheckSensorUp() {
     distance = (duration * 0.0343) / 2;
 
     // Ignore invalid readings
-    if (distance < 2 || distance > 40) {
-      continue; // Skip and try again
+    if (distance < 3 || distance > 40) {
     }
 
     // Return if object is too close or too far
-    if (distance >= 30) {
+    else if (distance >= 26) {
       return;
     }
 
@@ -138,11 +137,10 @@ void CheckSensorDown() {
 
     // Ignore invalid readings
     if (distance < 2 || distance > 40) {
-      continue; // Skip and try again
     }
 
     // Return if object is too close or too far
-    if (distance <= 8) {
+    else if (distance <= 4) {
       return;
     }
 
@@ -163,6 +161,7 @@ Input 1 2 3
 
 
 */
+//int signal = 0b111;
 void loop() {
   
   int signal = ReadInput();
@@ -188,13 +187,11 @@ void loop() {
       break;
     case 0b101: // 101
       Down();
-      ConveyorStop();
       CheckSensorDown();
       RestVertical();
       break;
     case 0b110: // 110
       Up();
-      ConveyorStop();
       CheckSensorUp();
       RestVertical();
       break;
@@ -204,4 +201,5 @@ void loop() {
     default:
       break;
   }
+  //signal=0b000;
  }
